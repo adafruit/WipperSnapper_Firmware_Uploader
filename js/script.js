@@ -411,28 +411,47 @@ const BOARD_IDENTIFIER_MAP = {
   [ESP8266]: 'esp8266',
 }
 
-async function programScript(stages) {
-    let settings = {
-        files: [
-            {
-                filename: "secrets.json",
-                callback: populateSecretsFile,
-            },
-        ],
-        rootFolder: "files",
-    };
+async function fetchFilesForChipType() {
+    // determine board identifier
+    const chipType = await espTool.chipType()
+    const boardId = BOARD_IDENTIFIER_MAP[chipType]
 
-    let chipType = await espTool.chipType();
-    if (chipType == ESP8266) {
-        logMsg("Using ESP8266 Settings...");
-        Object.assign(settings, ESP8266_SETTINGS);
-    } else if (chipType == ESP32) {
-        logMsg("Using ESP32 Settings...");
-        Object.assign(settings, ESP32_SETTINGS);
-    } else {
-        errorMsg("Unsupported Chip!");
-        return;
+    if(!boardId) { throw new Error(`Unsupported Chip! ${chipType} ${boardId}`) }
+
+    // fetch zip from io-rails
+    const response = await fetch(`//io.adafruit.vm/wipper_releases/${boardId}`, {
+        headers: { Accept: 'application/octet-stream' }
+    })
+
+
+    // unzip into local file cache
+}
+
+const DEFAULT_SETTINGS = {
+    files: [
+        {
+            filename: "secrets.json",
+            callback: populateSecretsFile,
+        },
+    ],
+    rootFolder: "files",
+};
+
+function mergeSettings() {
+    // read and parse structure.json into js
+    // merge with the defaults and send back
+}
+
+async function programScript(stages) {
+    try {
+        await fetchFilesForChipType()
+    } catch(error) {
+        errorMsg(error.message)
+        return
     }
+
+    const settings = mergeSettings()
+    return
 
     let steps = [];
     for (let i = 0; i < stages.length; i++) {
