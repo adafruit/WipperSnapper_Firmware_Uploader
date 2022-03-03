@@ -20,7 +20,7 @@ const ESP32_SETTINGS = {
     fileSystemSize: 94208,
     blockSize: 4096,
     structure: {
-        0xe000: "esp32.boot_app0.bin",
+        0xe000: "boot_app0.bin",
         0x1000: "Wippersnapper_littlefs_esp32.ino.bootloader.bin",
         0x10000: "Wippersnapper_littlefs_esp32.ino.bin",
         0x8000: "Wippersnapper_littlefs_esp32.ino.partitions.bin",
