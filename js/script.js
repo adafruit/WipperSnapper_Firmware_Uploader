@@ -430,6 +430,34 @@ async function fetchFilesForChipType() {
 
     console.log(entries)
 
+    // find structure.json
+    let structureFile
+    for (let i = 0; i < entries.length; i++) {
+      if(entries[i].filename === 'structure.json') {
+        structureFile = entries[i]
+        break
+      }
+    }
+
+    if(!structureFile) { throw new Error(`No structure.json file found in firmware zip!`)}
+
+    const jsonString = await structureFile.getData(new zip.TextWriter(), {
+        onprogress: (index, max) => logMsg(`${index}/${max}`)
+    });
+
+
+    const structure = JSON.parse(jsonString)
+
+    // convert the offset value from hex string to number
+    structure.offset = parseInt(structure.offset, 16)
+    // replace the structure object with one where the keys have been converted
+    // from hex strings to numbers
+    structure.structure = Object.keys(structure.structure).reduce((newObj, hexString) => {
+      // new object, converted key (hex string -> numeric), same value
+      newObj[parseInt(hexString, 16)] = structure.structure[hexString]
+
+      return newObj
+    }, {})
     // unzip into local file cache
 }
 
