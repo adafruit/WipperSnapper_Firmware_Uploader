@@ -423,6 +423,12 @@ async function fetchFilesForChipType() {
         headers: { Accept: 'application/octet-stream' }
     })
 
+    // Zip stuff
+    const blob = await response.blob()
+    const reader = new zip.ZipReader(new zip.BlobReader(blob));
+    const entries = await reader.getEntries();
+
+    console.log(entries)
 
     // unzip into local file cache
 }
