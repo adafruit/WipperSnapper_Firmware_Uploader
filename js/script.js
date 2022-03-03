@@ -413,10 +413,12 @@ const BOARD_IDENTIFIER_MAP = {
 
 async function fetchFilesForChipType() {
     // determine board identifier
+    logMsg("Checking board type...")
     const chipType = await espTool.chipType()
     const boardId = BOARD_IDENTIFIER_MAP[chipType]
 
     if(!boardId) { throw new Error(`Unsupported Chip! ${chipType} ${boardId}`) }
+    logMsg(`WipperSnapper Board found: ${boardId}, fetching latest firmware...`)
 
     // fetch zip from io-rails
     const response = await fetch(`//io.adafruit.vm/wipper_releases/${boardId}`, {
@@ -424,6 +426,7 @@ async function fetchFilesForChipType() {
     })
 
     // Zip stuff
+    logMsg("Unzipping firmware bundle...")
     const blob = await response.blob()
     const reader = new zip.ZipReader(new zip.BlobReader(blob));
     const entries = await reader.getEntries();
@@ -441,11 +444,13 @@ async function fetchFilesForChipType() {
 
     if(!structureFile) { throw new Error(`No structure.json file found in firmware zip!`)}
 
+    logMsg("Extracting structure.json...")
     const jsonString = await structureFile.getData(new zip.TextWriter(), {
         onprogress: (index, max) => logMsg(`${index}/${max}`)
     });
 
 
+    logMsg("Parsing structure.json...")
     const structure = JSON.parse(jsonString)
 
     // convert the offset value from hex string to number
@@ -458,6 +463,7 @@ async function fetchFilesForChipType() {
 
       return newObj
     }, {})
+
     // unzip into local file cache
 }
 
