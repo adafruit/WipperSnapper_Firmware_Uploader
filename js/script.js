@@ -1,6 +1,6 @@
 // Note: the code will still work without this line, but without it you
 // will see an error in the editor
-/* global EspLoader, ESP_ROM_BAUD, port, reader, inputBuffer, generate */
+/* global EspLoader, ESP_ROM_BAUD, ESP32, ESP8266, port, reader, inputBuffer, generate */
 'use strict';
 
 const BIN_FOLDER = "bin/";
@@ -403,6 +403,12 @@ function updateObject(obj, path, value) {
     }
 
     obj[path] = value;
+}
+
+// Map of ESPTool chip type constants to IO board definition identifiers
+const BOARD_IDENTIFIER_MAP = {
+  [ESP32]: 'esp32',
+  [ESP8266]: 'esp8266',
 }
 
 async function programScript(stages) {
