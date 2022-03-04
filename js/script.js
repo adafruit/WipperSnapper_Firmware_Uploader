@@ -411,6 +411,8 @@ const BOARD_IDENTIFIER_MAP = {
   [ESP8266]: 'esp8266',
 }
 
+
+let chipFiles
 async function fetchFilesForChipType() {
     // determine board identifier
     logMsg("Checking board type...")
@@ -429,45 +431,12 @@ async function fetchFilesForChipType() {
     logMsg("Unzipping firmware bundle...")
     const blob = await response.blob()
     const reader = new zip.ZipReader(new zip.BlobReader(blob));
-    const entries = await reader.getEntries();
-
-    console.log(entries)
-
-    // find structure.json
-    let structureFile
-    for (let i = 0; i < entries.length; i++) {
-      if(entries[i].filename === 'structure.json') {
-        structureFile = entries[i]
-        break
-      }
-    }
-
-    if(!structureFile) { throw new Error(`No structure.json file found in firmware zip!`)}
-
-    logMsg("Extracting structure.json...")
-    const jsonString = await structureFile.getData(new zip.TextWriter(), {
-        onprogress: (index, max) => logMsg(`${index}/${max}`)
-    });
-
-
-    logMsg("Parsing structure.json...")
-    const structure = JSON.parse(jsonString)
-
-    // convert the offset value from hex string to number
-    structure.offset = parseInt(structure.offset, 16)
-    // replace the structure object with one where the keys have been converted
-    // from hex strings to numbers
-    structure.structure = Object.keys(structure.structure).reduce((newObj, hexString) => {
-      // new object, converted key (hex string -> numeric), same value
-      newObj[parseInt(hexString, 16)] = structure.structure[hexString]
-
-      return newObj
-    }, {})
 
     // unzip into local file cache
+    chipFiles = await reader.getEntries();
 }
 
-const DEFAULT_SETTINGS = {
+const BASE_SETTINGS = {
     files: [
         {
             filename: "secrets.json",
@@ -477,9 +446,43 @@ const DEFAULT_SETTINGS = {
     rootFolder: "files",
 };
 
-function mergeSettings() {
-    // read and parse structure.json into js
+function findInZip(filename) {
+    for (let i = 0; i < chipFiles.length; i++) {
+        if(chipFiles[i].filename === filename) { return chipFiles[i] }
+    }
+}
+
+async function mergeSettings() {
+    // find structure.json
+    const structureFile = findInZip('structure.json')
+
+    if(!structureFile) { throw new Error(`No structure.json file found in firmware zip!`)}
+
+    logMsg("Extracting structure.json...")
+    const jsonString = await structureFile.getData(new zip.TextWriter());
+
+    logMsg("Parsing structure.json...")
+    const parsedStructure = JSON.parse(jsonString)
+
+    const transformedStructure = {
+        ...parsedStructure,
+        // convert the offset value from hex string to number
+        offset: parseInt(parsedStructure.offset, 16),
+        // replace the structure object with one where the keys have been converted
+        // from hex strings to numbers
+        structure: Object.keys(parsedStructure.structure).reduce((newObj, hexString) => {
+            // new object, converted key (hex string -> numeric), same value
+            newObj[parseInt(hexString, 16)] = parsedStructure.structure[hexString]
+
+            return newObj
+        }, {})
+    }
+
     // merge with the defaults and send back
+    return {
+      ...BASE_SETTINGS,
+      ...transformedStructure
+    }
 }
 
 async function programScript(stages) {
@@ -490,8 +493,8 @@ async function programScript(stages) {
         return
     }
 
-    const settings = mergeSettings()
-    return
+    const settings = await mergeSettings()
+    logMsg(`Flashing with chip settings: ${settings}`)
 
     let steps = [];
     for (let i = 0; i < stages.length; i++) {
@@ -693,6 +696,16 @@ function sleep(ms) {
 }
 
 async function getFirmware(filename) {
-    let response = await fetch(BIN_FOLDER + filename);
-    return await response.arrayBuffer();
+    const file = findInZip(filename)
+
+    if(!file) {
+      const msg = `No firmware file name ${filename} found in the zip!`
+      errorMsg(msg)
+      throw new Error(msg)
+    }
+
+    logMsg(`Unzipping ${filename}...`)
+    const firmwareFile = await file.getData(new zip.Uint8ArrayWriter())
+
+    return firmwareFile.buffer // ESPTool wants an ArrayBuffer
 }
