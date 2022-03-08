@@ -468,9 +468,11 @@ const BASE_SETTINGS = {
 };
 
 function findInZip(filename) {
-    // TODO: use VERSION token to do a regex match instead
+    const regex = RegExp(filename.replace("VERSION", "(.*)"))
     for (let i = 0; i < chipFiles.length; i++) {
-        if(chipFiles[i].filename === filename) { return chipFiles[i] }
+        if(chipFiles[i].filename.match(regex)) {
+            return chipFiles[i]
+        }
     }
 }
 
