@@ -418,17 +418,25 @@ const BOARD_IDENTIFIER_MAP = {
 
 
 let chipFiles
-async function fetchFilesForChipType() {
-    // determine board identifier
-    logMsg("Checking board type...")
-    const chipType = await espTool.chipType()
-    const boardId = BOARD_IDENTIFIER_MAP[chipType]
+async function fetchFirmwareForSelectedBoard() {
+    // get the currently selected board id
+    const selectedId = binSelector.value
+    if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
 
-    if(!boardId) { throw new Error(`Unsupported Chip! ${chipType} ${boardId}`) }
-    logMsg(`WipperSnapper Board found: ${boardId}, fetching latest firmware...`)
+    // grab the stored firmware settings for this id
+    let selectedFirmware
+    for (let firmware of latestFirmwares) {
+      if(firmware.id === selectedId) {
+        selectedFirmware = firmware
+        break
+      }
+    }
 
-    // fetch zip from io-rails
-    const response = await fetch(`${FIRMWARE_API}/wipper_releases/${boardId}`, {
+    if(!selectedFirmware) { throw new Error(`No firmware found for selected board: ${binSelector.selectedOptions[0].text}`) }
+    logMsg(`WipperSnapper-compatible Board found: ${selectedFirmware.name}`)
+
+    logMsg(`Fetching latest firmware...`)
+    const response = await fetch(`${FIRMWARE_API}/wipper_releases/${selectedId}`, {
         headers: { Accept: 'application/octet-stream' }
     })
 
@@ -492,7 +500,7 @@ async function mergeSettings() {
 
 async function programScript(stages) {
     try {
-        await fetchFilesForChipType()
+        await fetchFirmwareForSelectedBoard()
     } catch(error) {
         errorMsg(error.message)
         return
