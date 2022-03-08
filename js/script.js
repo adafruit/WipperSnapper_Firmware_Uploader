@@ -3,32 +3,8 @@
 /* global EspLoader, ESP_ROM_BAUD, ESP32, ESP8266, port, reader, inputBuffer, generate */
 'use strict';
 
-const BIN_FOLDER = "bin/";
+const FIRMWARE_API = "//io.adafruit.vm"
 const DO_DOWNLOAD = false
-
-const ESP8266_SETTINGS = {
-    offset: 0x200000,
-    fileSystemSize: 65536,
-    blockSize: 8192,
-    structure: {
-        0x0: "Wippersnapper_littlefs_esp8266.ino.bin",
-    },
-};
-
-const ESP32_SETTINGS = {
-    offset: 0x290000,
-    fileSystemSize: 94208,
-    blockSize: 4096,
-    structure: {
-        0xe000: "esp32.boot_app0.bin",
-        0x1000: "Wippersnapper_littlefs_esp32.ino.bootloader.bin",
-        0x10000: "Wippersnapper_littlefs_esp32.ino.bin",
-        0x8000: "Wippersnapper_littlefs_esp32.ino.partitions.bin",
-    },
-};
-
-// C3 is not tested (or currently used)
-const ESP32_C3_SETTINGS = ESP32_SETTINGS;
 
 let espTool;
 let isConnected = false;
@@ -423,7 +399,7 @@ async function fetchFilesForChipType() {
     logMsg(`WipperSnapper Board found: ${boardId}, fetching latest firmware...`)
 
     // fetch zip from io-rails
-    const response = await fetch(`//io.adafruit.vm/wipper_releases/${boardId}`, {
+    const response = await fetch(`${FIRMWARE_API}/wipper_releases/${boardId}`, {
         headers: { Accept: 'application/octet-stream' }
     })
 
