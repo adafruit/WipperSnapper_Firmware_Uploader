@@ -3,7 +3,7 @@
 /* global EspLoader, ESP_ROM_BAUD, ESP32, ESP8266, port, reader, inputBuffer, generate */
 'use strict';
 
-const FIRMWARE_API = "//io.adafruit.vm"
+const FIRMWARE_API = "http://io.adafruit.vm"
 const DO_DOWNLOAD = false
 
 let espTool;
