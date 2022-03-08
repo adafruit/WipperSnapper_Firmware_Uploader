@@ -57,6 +57,7 @@ let currentBoard;
 let buttonState = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
+    // detect debug setting from querystring
     let debug = false;
     var getArgs = {};
     location.search
@@ -69,12 +70,15 @@ document.addEventListener("DOMContentLoaded", () => {
         debug = getArgs["debug"] == "1" || getArgs["debug"].toLowerCase() == "true";
     }
 
+    // prepare the esptool
     espTool = new EspLoader({
         updateProgress: updateProgress,
         logMsg: logMsg,
         debugMsg: debugMsg,
         debug: debug,
     });
+
+    // register dom event listeners
     butConnect.addEventListener("click", () => {
         clickConnect().catch(async (e) => {
             errorMsg(e.message);
@@ -92,14 +96,19 @@ document.addEventListener("DOMContentLoaded", () => {
     autoscroll.addEventListener("click", clickAutoscroll);
     baudRate.addEventListener("change", changeBaudRate);
     darkMode.addEventListener("click", clickDarkMode);
+
+    // handle runaway errors
     window.addEventListener("error", function (event) {
         console.log("Got an uncaught error: ", event.error);
     });
+
+    // WebSerial feature detection
     if ("serial" in navigator) {
         const notSupported = document.getElementById("notSupported");
         notSupported.classList.add("hidden");
     }
 
+    initFirmwares();
     initBaudRate();
     loadAllSettings();
     updateTheme();
@@ -118,6 +127,13 @@ async function connect() {
     readLoop().catch((error) => {
         toggleUIConnected(false);
     });
+}
+
+async function initFirmwares() {
+    // fetch index from io-rails
+    // store response data
+    // transform into <option> tags
+    // populate <select>
 }
 
 function initBaudRate() {
@@ -655,12 +671,7 @@ function loadAllSettings() {
 }
 
 function loadSetting(setting, defaultValue) {
-    let value = JSON.parse(window.localStorage.getItem(setting));
-    if (value == null) {
-        return defaultValue;
-    }
-
-    return value;
+    return  JSON.parse(window.localStorage.getItem(setting)) || defaultValue;
 }
 
 function saveSetting(setting, value) {
