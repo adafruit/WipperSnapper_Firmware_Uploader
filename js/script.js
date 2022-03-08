@@ -36,6 +36,7 @@ const measurementPeriodId = "0001";
 const maxLogLength = 100;
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
+const binSelector = document.getElementById("binSelector");
 const baudRate = document.getElementById("baudRate");
 const butClear = document.getElementById("butClear");
 const butProgram = document.getElementById("butProgram");
@@ -108,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
         notSupported.classList.add("hidden");
     }
 
-    initFirmwares();
+    initBinSelector();
     initBaudRate();
     loadAllSettings();
     updateTheme();
@@ -129,19 +130,31 @@ async function connect() {
     });
 }
 
-async function initFirmwares() {
-    // fetch index from io-rails
-    // store response data
-    // transform into <option> tags
-    // populate <select>
+function createOption(value, text) {
+    const option = document.createElement("option");
+    option.text = text;
+    option.value = value;
+    return option;
+}
+
+let latestFirmwares = []
+async function initBinSelector() {
+    // fetch firmware index from io-rails
+    const response = await fetch(`${FIRMWARE_API}/wipper_releases`)
+    // parse and store firmware data for reuse
+    latestFirmwares = await(response.json())
+
+    // populate the bin select element
+    binSelector.innerHTML = '';
+    binSelector.add(createOption(null, "Select Your Board:"))
+    latestFirmwares.forEach(firmware => {
+        binSelector.add(createOption(firmware.id, firmware.name));
+    })
 }
 
 function initBaudRate() {
     for (let rate of baudRates) {
-        var option = document.createElement("option");
-        option.text = rate + " Baud";
-        option.value = rate;
-        baudRate.add(option);
+        baudRate.add(createOption(rate, `${rate} Baud`));
     }
 }
 
