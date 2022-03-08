@@ -152,6 +152,28 @@ async function initBinSelector() {
     })
 }
 
+function lookupFirmwareByBinSelector() {
+  // get the currently selected board id
+  const selectedId = binSelector.value
+  if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
+
+  // grab the stored firmware settings for this id
+  let selectedFirmware
+  for (let firmware of latestFirmwares) {
+    if(firmware.id === selectedId) {
+      selectedFirmware = firmware
+      break
+    }
+  }
+
+  if(!selectedFirmware) {
+    const { text, value } = binSelector.selectedOptions[0]
+    throw new Error(`No firmware entry for: ${text} (${value})`)
+  }
+
+  return selectedFirmware
+}
+
 function initBaudRate() {
     for (let rate of baudRates) {
         baudRate.add(createOption(rate, `${rate} Baud`));
@@ -419,24 +441,10 @@ const BOARD_IDENTIFIER_MAP = {
 
 let chipFiles
 async function fetchFirmwareForSelectedBoard() {
-    // get the currently selected board id
-    const selectedId = binSelector.value
-    if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
-
-    // grab the stored firmware settings for this id
-    let selectedFirmware
-    for (let firmware of latestFirmwares) {
-      if(firmware.id === selectedId) {
-        selectedFirmware = firmware
-        break
-      }
-    }
-
-    if(!selectedFirmware) { throw new Error(`No firmware found for selected board: ${binSelector.selectedOptions[0].text}`) }
-    logMsg(`WipperSnapper-compatible Board found: ${selectedFirmware.name}`)
+    const firmware = lookupFirmwareByBinSelector()
 
     logMsg(`Fetching latest firmware...`)
-    const response = await fetch(`${FIRMWARE_API}/wipper_releases/${selectedId}`, {
+    const response = await fetch(`${FIRMWARE_API}/wipper_releases/${firmware.id}`, {
         headers: { Accept: 'application/octet-stream' }
     })
 
@@ -460,32 +468,24 @@ const BASE_SETTINGS = {
 };
 
 function findInZip(filename) {
+    // TODO: use VERSION token to do a regex match instead
     for (let i = 0; i < chipFiles.length; i++) {
         if(chipFiles[i].filename === filename) { return chipFiles[i] }
     }
 }
 
 async function mergeSettings() {
-    // find structure.json
-    const structureFile = findInZip('structure.json')
+    const { settings } = lookupFirmwareByBinSelector()
 
-    if(!structureFile) { throw new Error(`No structure.json file found in firmware zip!`)}
-
-    logMsg("Extracting structure.json...")
-    const jsonString = await structureFile.getData(new zip.TextWriter());
-
-    logMsg("Parsing structure.json...")
-    const parsedStructure = JSON.parse(jsonString)
-
-    const transformedStructure = {
-        ...parsedStructure,
+    const transformedSettings = {
+        ...settings,
         // convert the offset value from hex string to number
-        offset: parseInt(parsedStructure.offset, 16),
+        offset: parseInt(settings.offset, 16),
         // replace the structure object with one where the keys have been converted
         // from hex strings to numbers
-        structure: Object.keys(parsedStructure.structure).reduce((newObj, hexString) => {
+        structure: Object.keys(settings.structure).reduce((newObj, hexString) => {
             // new object, converted key (hex string -> numeric), same value
-            newObj[parseInt(hexString, 16)] = parsedStructure.structure[hexString]
+            newObj[parseInt(hexString, 16)] = settings.structure[hexString]
 
             return newObj
         }, {})
@@ -494,7 +494,7 @@ async function mergeSettings() {
     // merge with the defaults and send back
     return {
       ...BASE_SETTINGS,
-      ...transformedStructure
+      ...transformedSettings
     }
 }
 
@@ -507,7 +507,7 @@ async function programScript(stages) {
     }
 
     const settings = await mergeSettings()
-    logMsg(`Flashing with chip settings: ${settings}`)
+    logMsg(`Flashing with settings: ${JSON.stringify(settings, null, 2)}`)
 
     let steps = [];
     for (let i = 0; i < stages.length; i++) {
