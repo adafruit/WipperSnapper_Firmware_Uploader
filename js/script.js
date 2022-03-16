@@ -137,9 +137,28 @@ function createOption(value, text) {
     return option;
 }
 
+/* Firmware metadata example:
+{
+  id: "feather_esp32_v2_daily"
+  name: "Adafruit Feather ESP32 V2"
+  settings: {
+    blockSize: 4096
+    fileSystemSize: 94208
+    offset: "0x290000"
+    structure: {
+      "0xe000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.boot_app0.bin',
+      "0x1000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.bootloader.bin',
+      "0x10000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.bin',
+      "0x8000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.partitions.bin'
+    }
+  }
+}
+*/
+
 let latestFirmwares = []
 async function initBinSelector() {
-    // fetch firmware index from io-rails
+    // fetch firmware index from io-rails, a list of available littlefs
+    // firmware items, like the example above
     const response = await fetch(`${FIRMWARE_API}/wipper_releases`)
     // parse and store firmware data for reuse
     latestFirmwares = await(response.json())
@@ -430,12 +449,6 @@ function updateObject(obj, path, value) {
     }
 
     obj[path] = value;
-}
-
-// Map of ESPTool chip type constants to IO board definition identifiers
-const BOARD_IDENTIFIER_MAP = {
-  [ESP32]: 'esp32',
-  [ESP8266]: 'esp8266',
 }
 
 
