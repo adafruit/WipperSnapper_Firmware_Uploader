@@ -22,6 +22,7 @@
     <script src="https://adafruit.github.io/Adafruit_WebSerial_ESPTool/js/utilities.js" defer></script>
     <script src="https://adafruit.github.io/Adafruit_WebSerial_ESPTool/js/esptool.js" defer></script>
     <script src="js/littlefs.js" defer></script>
+    <script src="js/zip.min.js" defer></script>
     <script src="js/script.js" defer></script>
   </head>
   <body>
@@ -30,6 +31,9 @@
         <img src="https://adafruit.github.io/Adafruit_WebSerial_ESPTool/assets/adafruit-logo.svg" class="Adafruit-Logo">
       </div>
       <div class="right">
+        <select id="binSelector">
+          <option value="">Loading Firmware...</option>
+        </select>&nbsp;
         <select id="baudRate"></select>
         <button id="butConnect" type="button">Connect</button>
       </div>

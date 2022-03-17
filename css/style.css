@@ -7,19 +7,19 @@
     font-weight: 600;
     outline: none;
   }
-  
-  
+
+
   body {
     font-family: proxima-nova, sans-serif;
     font-style: normal;
     font-weight: 400;
     margin: 0;
   }
-  
+
   p {
     margin: 0;
   }
-  
+
   .header {
     box-sizing: border-box;
     font-size: 16px;
@@ -32,13 +32,13 @@
     margin: 0;
     border-bottom: 5px solid #00a7e9;
   }
-  
+
   .header h1 {
     flex: 1;
     font-size: 20px;
     font-weight: 400;
   }
-  
+
   button, .firmware {
     height: 25px;
     font-size: 16px;
@@ -47,31 +47,31 @@
     padding-right: 20px;
     border-width: 2px;
   }
-  
+
   .footer {
     height: 45px;
     line-height: 45px;
     padding-left: 70px;
     padding-right: 70px;
   }
-  
+
   .footer button {
     font-size: 14px;
     margin: 0 10px;
   }
-  
+
   .remix {
     display: flex;
     justify-content: center;
     height: 60px;
     position: relative;
   }
-  
+
   .remix button {
     position: absolute;
     bottom: 11px;
   }
-  
+
   .header button {
     border: solid 2px #ffffff;
     background-color: #000000;
@@ -79,76 +79,76 @@
     margin-left: 20px;
     height: 30px;
   }
-  
+
   .header button:hover {
     background-color: #ffffff;
     color: #000000;
   }
-  
+
   div.left {
     float: left;
     display: flex;
     align-items: center;
   }
-  
+
   div.right {
     float: right;
     display: flex;
     align-items: center;
   }
-  
+
   div.clear {
     clear: both;
   }
-  
+
   .Adafruit-Logo {
     width: 115px;
     height: 40px;
     object-fit: contain;
   }
-  
+
   .main {
     overflow-x: hidden;
     overflow-y: auto;
     padding-top: 105px;
   }
-  
+
   .hidden {
     display: none;
   }
-  
+
   .notSupported {
     padding: 1em;
     margin-top: 1em;
     margin-bottom: 1em;
   }
-  
+
   .subheader {
     height: 180px;
     padding-left: 70px;
     padding-right: 70px;
   }
-  
+
   .subheader .title {
     font-size: 36px;
     font-weight: 500;
     margin-bottom: 20px;
   }
-  
+
   .subheader div.left {
     flex-direction: column;
     align-items: baseline;
     width: 80%;
   }
-  
+
   .subheader p {
     margin-bottom: 10px;
   }
-  
+
   #commands, #log {
-    transition: height 0.5s;  
+    transition: height 0.5s;
   }
-  
+
   #log {
     max-width: 100%;
     font-family: pt-mono, monospace;
@@ -165,19 +165,19 @@
     background-color: #000000;
     color: #cecece;
   }
-  
+
   #log::-webkit-scrollbar {
     display: none;
   }
-  
+
   #app #log {
     height: calc(100vh - 370px);
   }
-  
+
   #app.connected #log {
     height: calc(100vh - 570px);
   }
-  
+
   #commands {
     position: relative;
     margin: 0 auto;
@@ -187,19 +187,19 @@
     justify-content: center;
     align-items: center;
   }
-  
+
   #app #commands {
     height: 0;
   }
-  
+
   #app.connected #commands {
     height: 200px;
   }
-  
+
   #templates {
     display: none;
   }
-  
+
   /* On/Off Switch Widget */
   .onoffswitch {
     display: inline-block;
@@ -210,11 +210,11 @@
     -ms-user-select: none;
     margin-left: 10px;
   }
-  
+
   .onoffswitch-checkbox {
     display: none;
   }
-  
+
   .onoffswitch-label {
     display: block;
     overflow: hidden;
@@ -223,14 +223,14 @@
     border-radius: 15px;
     transition: border 0.3s ease-in 0s;
   }
-  
+
   .onoffswitch-inner {
     display: block;
     width: 200%;
     margin-left: -100%;
     transition: margin 0.3s ease-in 0s;
   }
-  
+
   .onoffswitch-inner:before,
   .onoffswitch-inner:after {
     display: block;
@@ -246,14 +246,14 @@
     font-weight: 600;
     box-sizing: border-box;
   }
-  
+
   .onoffswitch-inner:before {
     content: "on";
     padding-left: 6px;
     background-color: #8ec641;
     color: #ffffff;
   }
-  
+
   .onoffswitch-inner:after {
     content: "off";
     padding-right: 6px;
@@ -261,7 +261,7 @@
     color: #ffffff;
     text-align: right;
   }
-  
+
   .onoffswitch-switch {
     display: block;
     width: 19px;
@@ -275,32 +275,32 @@
     border-radius: 15px;
     transition: all 0.3s ease-in 0s;
   }
-  
+
   .onoffswitch-checkbox:checked + .onoffswitch-label {
     border-color: #71ae1e;
   }
-  
+
   .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
     margin-left: 0;
   }
-  
+
   .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
     right: 0px;
     border-color: #67ac38;
   }
-  
+
   .footer .onoffswitch {
     margin-right: 20px;
   }
-  
+
   #fpsCounter {
     margin-right: 10px;
   }
-  
+
   #butClear {
     margin-top: 10px;
   }
-  
+
   #commands .field {
     width: 400px;
     display: flex;
@@ -308,17 +308,17 @@
     margin: 5px auto;
     justify-content: flex-start;
   }
-  
+
   #commands .field label {
     white-space: nowrap;
   }
-  
+
   #commands .field span {
     width: 200px;
     display: inline-flex;
     justify-content: flex-end;
   }
-  
+
   .firmware > input {
       width: 0.1px;
       height: 0.1px;
@@ -327,7 +327,7 @@
       position: absolute;
       z-index: -1;
   }
-  
+
   .firmware {
     border-style: solid;
     margin-left: 20px;
@@ -336,23 +336,23 @@
     align-items: center;
     cursor: pointer;
   }
-  
+
   .firmware > svg {
     margin-right: 10px;
   }
-  
+
   .debug-function {
     color: #8ec641;
   }
-  
+
   .error-message {
     color: #c64141;
   }
-  
+
   .timestamp {
     color: #8ec641;
   }
-  
+
   .progress-bar {
     width: 100%;
     height: 24px;
@@ -362,20 +362,20 @@
     padding: 0;
     overflow: hidden;
   }
-  
+
   .progress-bar > div {
     height: 24px;
     background-color: #71ae1e;
     width: 0;
   }
-  
+
   #commands .buttons {
     display: flex;
     justify-content: center;
     width: 600px;
     margin: 10px auto;
   }
-  
+
   #commands .buttons button {
     margin-left: 10px;
     margin-right: 10px;

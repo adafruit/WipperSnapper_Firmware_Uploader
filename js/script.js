@@ -1,34 +1,10 @@
 // Note: the code will still work without this line, but without it you
 // will see an error in the editor
-/* global EspLoader, ESP_ROM_BAUD, port, reader, inputBuffer, generate */
+/* global EspLoader, ESP_ROM_BAUD, ESP32, ESP8266, port, reader, inputBuffer, generate */
 'use strict';
 
-const BIN_FOLDER = "bin/";
+const FIRMWARE_API = "//io.adafruit.com"
 const DO_DOWNLOAD = false
-
-const ESP8266_SETTINGS = {
-    offset: 0x200000,
-    fileSystemSize: 65536,
-    blockSize: 8192,
-    structure: {
-        0x0: "Wippersnapper_littlefs_esp8266.ino.bin",
-    },
-};
-
-const ESP32_SETTINGS = {
-    offset: 0x290000,
-    fileSystemSize: 94208,
-    blockSize: 4096,
-    structure: {
-        0xe000: "boot_app0.bin",
-        0x1000: "Wippersnapper_littlefs_esp32.ino.bootloader.bin",
-        0x10000: "Wippersnapper_littlefs_esp32.ino.bin",
-        0x8000: "Wippersnapper_littlefs_esp32.ino.partitions.bin",
-    },
-};
-
-// C3 is not tested (or currently used)
-const ESP32_C3_SETTINGS = ESP32_SETTINGS;
 
 let espTool;
 let isConnected = false;
@@ -60,6 +36,7 @@ const measurementPeriodId = "0001";
 const maxLogLength = 100;
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
+const binSelector = document.getElementById("binSelector");
 const baudRate = document.getElementById("baudRate");
 const butClear = document.getElementById("butClear");
 const butProgram = document.getElementById("butProgram");
@@ -81,6 +58,7 @@ let currentBoard;
 let buttonState = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
+    // detect debug setting from querystring
     let debug = false;
     var getArgs = {};
     location.search
@@ -93,12 +71,15 @@ document.addEventListener("DOMContentLoaded", () => {
         debug = getArgs["debug"] == "1" || getArgs["debug"].toLowerCase() == "true";
     }
 
+    // prepare the esptool
     espTool = new EspLoader({
         updateProgress: updateProgress,
         logMsg: logMsg,
         debugMsg: debugMsg,
         debug: debug,
     });
+
+    // register dom event listeners
     butConnect.addEventListener("click", () => {
         clickConnect().catch(async (e) => {
             errorMsg(e.message);
@@ -116,14 +97,19 @@ document.addEventListener("DOMContentLoaded", () => {
     autoscroll.addEventListener("click", clickAutoscroll);
     baudRate.addEventListener("change", changeBaudRate);
     darkMode.addEventListener("click", clickDarkMode);
+
+    // handle runaway errors
     window.addEventListener("error", function (event) {
         console.log("Got an uncaught error: ", event.error);
     });
+
+    // WebSerial feature detection
     if ("serial" in navigator) {
         const notSupported = document.getElementById("notSupported");
         notSupported.classList.add("hidden");
     }
 
+    initBinSelector();
     initBaudRate();
     loadAllSettings();
     updateTheme();
@@ -144,12 +130,72 @@ async function connect() {
     });
 }
 
+function createOption(value, text) {
+    const option = document.createElement("option");
+    option.text = text;
+    option.value = value;
+    return option;
+}
+
+/* Firmware metadata example:
+{
+  id: "feather_esp32_v2_daily"
+  name: "Adafruit Feather ESP32 V2"
+  settings: {
+    blockSize: 4096
+    fileSystemSize: 94208
+    offset: "0x290000"
+    structure: {
+      "0xe000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.boot_app0.bin',
+      "0x1000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.bootloader.bin',
+      "0x10000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.bin',
+      "0x8000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.partitions.bin'
+    }
+  }
+}
+*/
+
+let latestFirmwares = []
+async function initBinSelector() {
+    // fetch firmware index from io-rails, a list of available littlefs
+    // firmware items, like the example above
+    const response = await fetch(`${FIRMWARE_API}/wipper_releases`)
+    // parse and store firmware data for reuse
+    latestFirmwares = await(response.json())
+
+    // populate the bin select element
+    binSelector.innerHTML = '';
+    binSelector.add(createOption(null, "Select Your Board:"))
+    latestFirmwares.forEach(firmware => {
+        binSelector.add(createOption(firmware.id, firmware.name));
+    })
+}
+
+function lookupFirmwareByBinSelector() {
+  // get the currently selected board id
+  const selectedId = binSelector.value
+  if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
+
+  // grab the stored firmware settings for this id
+  let selectedFirmware
+  for (let firmware of latestFirmwares) {
+    if(firmware.id === selectedId) {
+      selectedFirmware = firmware
+      break
+    }
+  }
+
+  if(!selectedFirmware) {
+    const { text, value } = binSelector.selectedOptions[0]
+    throw new Error(`No firmware entry for: ${text} (${value})`)
+  }
+
+  return selectedFirmware
+}
+
 function initBaudRate() {
     for (let rate of baudRates) {
-        var option = document.createElement("option");
-        option.text = rate + " Baud";
-        option.value = rate;
-        baudRate.add(option);
+        baudRate.add(createOption(rate, `${rate} Baud`));
     }
 }
 
@@ -405,28 +451,78 @@ function updateObject(obj, path, value) {
     obj[path] = value;
 }
 
-async function programScript(stages) {
-    let settings = {
-        files: [
-            {
-                filename: "secrets.json",
-                callback: populateSecretsFile,
-            },
-        ],
-        rootFolder: "files",
-    };
 
-    let chipType = await espTool.chipType();
-    if (chipType == ESP8266) {
-        logMsg("Using ESP8266 Settings...");
-        Object.assign(settings, ESP8266_SETTINGS);
-    } else if (chipType == ESP32) {
-        logMsg("Using ESP32 Settings...");
-        Object.assign(settings, ESP32_SETTINGS);
-    } else {
-        errorMsg("Unsupported Chip!");
-        return;
+let chipFiles
+async function fetchFirmwareForSelectedBoard() {
+    const firmware = lookupFirmwareByBinSelector()
+
+    logMsg(`Fetching latest firmware...`)
+    const response = await fetch(`${FIRMWARE_API}/wipper_releases/${firmware.id}`, {
+        headers: { Accept: 'application/octet-stream' }
+    })
+
+    // Zip stuff
+    logMsg("Unzipping firmware bundle...")
+    const blob = await response.blob()
+    const reader = new zip.ZipReader(new zip.BlobReader(blob));
+
+    // unzip into local file cache
+    chipFiles = await reader.getEntries();
+}
+
+const BASE_SETTINGS = {
+    files: [
+        {
+            filename: "secrets.json",
+            callback: populateSecretsFile,
+        },
+    ],
+    rootFolder: "files",
+};
+
+function findInZip(filename) {
+    const regex = RegExp(filename.replace("VERSION", "(.*)"))
+    for (let i = 0; i < chipFiles.length; i++) {
+        if(chipFiles[i].filename.match(regex)) {
+            return chipFiles[i]
+        }
     }
+}
+
+async function mergeSettings() {
+    const { settings } = lookupFirmwareByBinSelector()
+
+    const transformedSettings = {
+        ...settings,
+        // convert the offset value from hex string to number
+        offset: parseInt(settings.offset, 16),
+        // replace the structure object with one where the keys have been converted
+        // from hex strings to numbers
+        structure: Object.keys(settings.structure).reduce((newObj, hexString) => {
+            // new object, converted key (hex string -> numeric), same value
+            newObj[parseInt(hexString, 16)] = settings.structure[hexString]
+
+            return newObj
+        }, {})
+    }
+
+    // merge with the defaults and send back
+    return {
+      ...BASE_SETTINGS,
+      ...transformedSettings
+    }
+}
+
+async function programScript(stages) {
+    try {
+        await fetchFirmwareForSelectedBoard()
+    } catch(error) {
+        errorMsg(error.message)
+        return
+    }
+
+    const settings = await mergeSettings()
+    logMsg(`Flashing with settings: ${JSON.stringify(settings, null, 2)}`)
 
     let steps = [];
     for (let i = 0; i < stages.length; i++) {
@@ -611,12 +707,7 @@ function loadAllSettings() {
 }
 
 function loadSetting(setting, defaultValue) {
-    let value = JSON.parse(window.localStorage.getItem(setting));
-    if (value == null) {
-        return defaultValue;
-    }
-
-    return value;
+    return  JSON.parse(window.localStorage.getItem(setting)) || defaultValue;
 }
 
 function saveSetting(setting, value) {
@@ -628,6 +719,16 @@ function sleep(ms) {
 }
 
 async function getFirmware(filename) {
-    let response = await fetch(BIN_FOLDER + filename);
-    return await response.arrayBuffer();
+    const file = findInZip(filename)
+
+    if(!file) {
+      const msg = `No firmware file name ${filename} found in the zip!`
+      errorMsg(msg)
+      throw new Error(msg)
+    }
+
+    logMsg(`Unzipping ${filename}...`)
+    const firmwareFile = await file.getData(new zip.Uint8ArrayWriter())
+
+    return firmwareFile.buffer // ESPTool wants an ArrayBuffer
 }
