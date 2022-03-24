@@ -182,6 +182,8 @@ function initSemver(newSemver) {
 
   semver = newSemver
   semverLabel.innerHTML = semver
+
+  return true
 }
 
 function lookupFirmwareByBinSelector() {
