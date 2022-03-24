@@ -34,8 +34,18 @@
         <select id="binSelector">
           <option value="">Loading Firmware...</option>
         </select>&nbsp;
-        <select id="baudRate"></select>
         <button id="butConnect" type="button">Connect</button>
+        <select id="baudRate" style="display: none;"></select>
+        <label for="darkmode">
+          Dark Mode
+        </label>
+        <div class="onoffswitch">
+          <input type="checkbox" name="darkmode" class="onoffswitch-checkbox" id="darkmode">
+          <label class="onoffswitch-label" for="darkmode">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
       </div>
     </header>
     <main class="main">
@@ -52,16 +62,6 @@
           <p>For all other boards - please visit the WipperSnapper Quick Start Guide and follow the steps for your hardware: <a href="https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper">https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper</a></p>
         </div>
         <div class="right">
-          <label for="darkmode">
-            Dark Mode
-          </label>
-          <div class="onoffswitch">
-            <input type="checkbox" name="darkmode" class="onoffswitch-checkbox" id="darkmode">
-            <label class="onoffswitch-label" for="darkmode">
-              <span class="onoffswitch-inner"></span>
-              <span class="onoffswitch-switch"></span>
-            </label>
-          </div>
         </div>
       </div>
       <div id="app">
