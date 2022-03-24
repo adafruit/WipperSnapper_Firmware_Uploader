@@ -31,10 +31,6 @@
         <img src="https://adafruit.github.io/Adafruit_WebSerial_ESPTool/assets/adafruit-logo.svg" class="Adafruit-Logo">
       </div>
       <div class="right">
-        <select id="binSelector">
-          <option value="">Loading Firmware...</option>
-        </select>&nbsp;
-        <button id="butConnect" type="button">Connect</button>
         <select id="baudRate" style="display: none;"></select>
         <label for="darkmode">
           Dark Mode
@@ -59,9 +55,44 @@
       </div>
       <div class="subheader">
         <div class="left">
+          <span class="title">Install Adafruit.IO WipperSnapper</span>
+          <ol>
+            <li>
+              <p>
+                Find your board in this list:
+                <select id="binSelector">
+                  <option value="">Loading Firmware...</option>
+                </select>
+              </p>
+              <ul>
+                <li><p><em>Don't see your board? <a href="https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper">Visit the quick-start guide</a> and follow the instructions for your hardware.</em></p></li>
+              </ul>
+            </li>
+
+            <li>
+              <p>
+                Make sure your board is plugged into this computer via a Serial connect (probably a USB cable)
+              </p>
+            </li>
+
+            <li>
+              <p>
+                Now connect to your device by clicking this button:
+                <button id="butConnect" type="button">
+                  Connect
+                </button>
+              </p>
+
+              <img src="/images/web_serial_menu.png" style="max-width: 50%; float: right;"/>
+              <p>
+                You'll see a Web Serial menu appear, similar to this:
+              </p>
+              <p>
+                If you aren't sure which to choose, look for words like "USB", "UART", and "Bridge Controller". There may be more than one right option depending on your system configuration. Experiment if needed!
+            </li>
+          </ol>
         </div>
-        <div class="right">
-        </div>
+        <div class="right"></div>
       </div>
       <div id="app">
         <div id="commands">
