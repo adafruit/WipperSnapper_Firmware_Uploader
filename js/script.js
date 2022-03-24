@@ -35,6 +35,7 @@ const measurementPeriodId = "0001";
 
 const maxLogLength = 100;
 const log = document.getElementById("log");
+const semverLabel = document.getElementById("semver");
 const butConnect = document.getElementById("butConnect");
 const binSelector = document.getElementById("binSelector");
 const baudRate = document.getElementById("baudRate");
@@ -160,15 +161,27 @@ async function initBinSelector() {
     // fetch firmware index from io-rails, a list of available littlefs
     // firmware items, like the example above
     const response = await fetch(`${FIRMWARE_API}/wipper_releases`)
+    // extract the semver from the custom header
+    if(!initSemver(response.headers.get('AIO-WS-Firmware-Semver'))) {
+      console.error("No semver information in the response headers!")
+    }
     // parse and store firmware data for reuse
     latestFirmwares = await(response.json())
 
     // populate the bin select element
     binSelector.innerHTML = '';
-    binSelector.add(createOption(null, "Select Your Board:"))
+    binSelector.add(createOption(null, "Click Here to Find Your Board:"))
     latestFirmwares.forEach(firmware => {
         binSelector.add(createOption(firmware.id, firmware.name));
     })
+}
+
+let semver
+function initSemver(newSemver) {
+  if(!newSemver) { return }
+
+  semver = newSemver
+  semverLabel.innerHTML = semver
 }
 
 function lookupFirmwareByBinSelector() {
