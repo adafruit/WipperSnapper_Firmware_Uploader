@@ -36,6 +36,8 @@ const measurementPeriodId = "0001";
 const maxLogLength = 100;
 const log = document.getElementById("log");
 const semverLabel = document.getElementById("semver");
+const butShowConsole = document.getElementById("butShowConsole");
+const consoleItems = document.getElementsByClassName("console-item");
 const butConnect = document.getElementById("butConnect");
 const binSelector = document.getElementById("binSelector");
 const baudRate = document.getElementById("baudRate");
@@ -79,6 +81,13 @@ document.addEventListener("DOMContentLoaded", () => {
         debugMsg: debugMsg,
         debug: debug,
     });
+
+    butShowConsole.addEventListener("click", () => {
+      for (let idx = 0; idx < consoleItems.length; idx++) {
+        consoleItems.item(idx).classList.remove("hidden")
+      }
+      butShowConsole.classList.add("hidden")
+    })
 
     // register dom event listeners
     butConnect.addEventListener("click", () => {

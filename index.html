@@ -148,22 +148,30 @@
             <p><strong>WipperSnapper successfully installed.</strong> Reset your board and <a href="https://io.adafruit.com/wippersnapper">visit your WipperSnapper page on Adafruit IO!</a></p>
           </li>
         </ol>
+
+        <div id="log" class="hidden console-item"></div>
       </div>
     </main>
     <footer class="footer">
-      <div class="left">
-        <label for="autoscroll">Autoscroll</label>
-        <div class="onoffswitch">
-          <input type="checkbox" name="autoscroll" class="onoffswitch-checkbox" id="autoscroll">
-          <label class="onoffswitch-label" for="autoscroll">
-            <span class="onoffswitch-inner"></span>
-            <span class="onoffswitch-switch"></span>
-          </label>
-        </div>
+      <div style="position: absolute; bottom: 10px;">
+        <button id="butShowConsole">Show Console</button>
       </div>
-      <div class="right">
-        <span id="fpsCounter"></span>
-        <button id="butClear" type="button">Clear Text</button>
+
+      <div class="hidden console-item">
+        <div class="left">
+          <label for="autoscroll">Autoscroll</label>
+          <div class="onoffswitch">
+            <input type="checkbox" name="autoscroll" class="onoffswitch-checkbox" id="autoscroll">
+            <label class="onoffswitch-label" for="autoscroll">
+              <span class="onoffswitch-inner"></span>
+              <span class="onoffswitch-switch"></span>
+            </label>
+          </div>
+        </div>
+        <div class="right">
+          <span id="fpsCounter"></span>
+          <button id="butClear" type="button">Clear Text</button>
+        </div>
       </div>
     </footer>
   </body>
