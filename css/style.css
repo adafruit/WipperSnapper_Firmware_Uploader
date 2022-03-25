@@ -124,7 +124,7 @@
   }
 
   .subheader {
-    height: 180px;
+    height: 120px;
     padding-left: 70px;
     padding-right: 70px;
   }
@@ -143,6 +143,18 @@
 
   .subheader p {
     margin-bottom: 10px;
+  }
+
+  .tutorial-steps {
+    padding: 0 100px;
+  }
+
+  .tutorial-steps li {
+    margin-top: 14px;
+  }
+
+  .tutorial-steps p {
+    margin-bottom: 14px;
   }
 
   #commands, #log {
@@ -193,7 +205,7 @@
   }
 
   #app.connected #commands {
-    height: 200px;
+    height: 130px;
   }
 
   #templates {

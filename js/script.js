@@ -174,6 +174,27 @@ async function initBinSelector() {
     latestFirmwares.forEach(firmware => {
         binSelector.add(createOption(firmware.id, firmware.name));
     })
+
+    // show next step upon selection
+    binSelector.addEventListener("change", changeBin);
+}
+
+function changeBin(selectedBin) {
+  (selectedBin.target.value && selectedBin.target.value != "null") ?
+    showStep(2) :
+    hideStep(2)
+}
+
+function showStep(stepNumber) {
+  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
+    stepEl.classList.remove("hidden")
+  }
+}
+
+function hideStep(stepNumber) {
+  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
+    stepEl.classList.add("hidden")
+  }
 }
 
 let semver
@@ -371,6 +392,7 @@ async function clickConnect() {
     toggleUIConnected(true);
     try {
         if (await espTool.sync()) {
+            showStep(3);
             toggleUIToolbar(true);
             appDiv.classList.add("connected");
             let baud = parseInt(baudRate.value);
@@ -602,6 +624,7 @@ async function programScript(stages) {
 
     progress.classList.remove("hidden");
     stepname.classList.remove("hidden");
+    showStep(5)
 
     for (let i = 0; i < steps.length; i++) {
         stepname.innerText = steps[i].name + " (" + (i + 1) + "/" + steps.length + ")...";
@@ -626,6 +649,7 @@ async function programScript(stages) {
     checkProgrammable();
     disconnect();
     logMsg("To run the new firmware, please reset your device.");
+    showStep(6);
 }
 
 function getValidFields() {
@@ -647,8 +671,11 @@ function getValidFields() {
  * Check if the conditions to program the device are sufficient
  */
 async function checkProgrammable() {
-    butProgramNvm.disabled = getValidFields().length < 4;
-    butProgram.disabled = getValidFields().length < 4;
+    if(getValidFields().length < 4) {
+      hideStep(4)
+    } else {
+      showStep(4)
+    }
 }
 
 /**
