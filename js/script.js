@@ -583,7 +583,7 @@ async function programScript(stages) {
         } else if (stages[i] == stage_flash_structure) {
             for (const [offset, filename] of Object.entries(settings.structure)) {
                 steps.push({
-                    name: "Flashing " + filename,
+                    name: "Flashing " + filename.replace('VERSION', semver),
                     func: async function (params) {
                         let firmware = await getFirmware(params.filename);
                         await espTool.flashData(firmware, params.offset, 0);
