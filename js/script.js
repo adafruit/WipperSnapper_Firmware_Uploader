@@ -83,10 +83,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     butShowConsole.addEventListener("click", () => {
+      // reveal the console log and its widgets
       for (let idx = 0; idx < consoleItems.length; idx++) {
         consoleItems.item(idx).classList.remove("hidden")
       }
+      // scroll it to the bottom
+      log.scrollTop = log.scrollHeight
+      // hide the show button
       butShowConsole.classList.add("hidden")
+      // scroll the app div as well
+      appDiv.classList.add("with-console")
+      appDiv.scrollTop = appDiv.scrollHeight
     })
 
     // register dom event listeners
@@ -198,6 +205,14 @@ function showStep(stepNumber) {
   for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
     stepEl.classList.remove("hidden")
   }
+
+  // dim the prior steps
+  for (let stepEl of document.getElementsByClassName(`step-${stepNumber-1}`)) {
+    stepEl.classList.add("dimmed")
+  }
+
+  // scroll to the bottom next frame
+  setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
 }
 
 function hideStep(stepNumber) {
@@ -560,6 +575,8 @@ async function mergeSettings() {
 }
 
 async function programScript(stages) {
+    butProgram.disabled = true
+    butProgramNvm.disabled = true
     try {
         await fetchFirmwareForSelectedBoard()
     } catch(error) {
@@ -743,7 +760,9 @@ function toggleUIToolbar(show) {
 function toggleUIConnected(connected) {
     let lbl = "Connect";
     if (connected) {
-        lbl = "Disconnect";
+        lbl = "Connected";
+        butConnect.disabled = true
+        binSelector.disabled = true
     } else {
         toggleUIToolbar(false);
     }

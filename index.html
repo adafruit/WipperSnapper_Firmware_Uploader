@@ -60,11 +60,10 @@
           <span class="title">Install Adafruit.IO WipperSnapper</span>
           <span><strong>This tool will install WipperSnapper version <em><span id="semver">Loading...</span></em> on certain boards. Click below to see if your board is supported, then follow the instructions to install the firmware.</strong></span>
         </div>
-        <div class="right"></div>
       </div>
       <div id="app">
         <ol class="tutorial-steps">
-          <li>
+          <li class="step-1">
             <p>
               <select id="binSelector">
                 <option value="">Loading Firmware...</option>
@@ -96,7 +95,7 @@
           </li>
 
           <li class="step-3 hidden">
-            <p>Do not disconnect your board from here on!</p>
+            <p><strong>Do not disconnect your board from your computer from here on!</strong></p>
           </li>
 
           <li class="step-3 hidden">
@@ -148,30 +147,29 @@
             <p><strong>WipperSnapper successfully installed.</strong> Reset your board and <a href="https://io.adafruit.com/wippersnapper">visit your WipperSnapper page on Adafruit IO!</a></p>
           </li>
         </ol>
-
-        <div id="log" class="hidden console-item"></div>
       </div>
-    </main>
-    <footer class="footer">
-      <div style="position: absolute; bottom: 10px;">
+
+      <div id="log" class="hidden console-item"></div>
+
+      <div>
         <button id="butShowConsole">Show Console</button>
       </div>
+    </main>
 
-      <div class="hidden console-item">
-        <div class="left">
-          <label for="autoscroll">Autoscroll</label>
-          <div class="onoffswitch">
-            <input type="checkbox" name="autoscroll" class="onoffswitch-checkbox" id="autoscroll">
-            <label class="onoffswitch-label" for="autoscroll">
-              <span class="onoffswitch-inner"></span>
-              <span class="onoffswitch-switch"></span>
-            </label>
-          </div>
+    <footer class="footer hidden console-item">
+      <div class="left">
+        <label for="autoscroll">Autoscroll</label>
+        <div class="onoffswitch">
+          <input type="checkbox" name="autoscroll" class="onoffswitch-checkbox" id="autoscroll">
+          <label class="onoffswitch-label" for="autoscroll">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
         </div>
-        <div class="right">
-          <span id="fpsCounter"></span>
-          <button id="butClear" type="button">Clear Text</button>
-        </div>
+      </div>
+      <div class="right">
+        <span id="fpsCounter"></span>
+        <button id="butClear" type="button">Clear Text</button>
       </div>
     </footer>
   </body>
