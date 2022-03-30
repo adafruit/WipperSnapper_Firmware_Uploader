@@ -76,8 +76,11 @@
 
           <li class="step-2 hidden">
             <p>
-              Make sure your board is plugged into this computer via a Serial connection using a USB Cable. NOTE: A lot of people end up using charge-only USB cables and it is very frustrating! Make sure you have a USB cable you know is good for data sync.
+              Make sure your board is plugged into this computer via a Serial connection using a USB Cable.
             </p>
+            <ul>
+              <li><p><em><strong>NOTE:</strong> A lot of people end up using charge-only USB cables and it is very frustrating! Make sure you have a USB cable you know is good for data sync.</em></p></li>
+            </ul>
           </li>
 
           <li class="step-2 hidden">
@@ -100,6 +103,10 @@
 
           <li class="step-3 hidden">
             <p>Enter the credentials for the wifi network your board will connect to, as well as your Adafruit IO Username and IO Key</p>
+
+            <ul>
+              <li><p><em><strong>NOTE:</strong> Your wifi network must be using 2.4Ghz frequency.</em></p></li>
+            </ul>
 
             <div id="commands">
               <div class="field">
@@ -150,14 +157,10 @@
       </div>
 
       <div id="log" class="hidden console-item"></div>
-
-      <div>
-        <button id="butShowConsole">Show Console</button>
-      </div>
     </main>
 
-    <footer class="footer hidden console-item">
-      <div class="left">
+    <footer class="footer">
+      <div class="left hidden console-item">
         <label for="autoscroll">Autoscroll</label>
         <div class="onoffswitch">
           <input type="checkbox" name="autoscroll" class="onoffswitch-checkbox" id="autoscroll">
@@ -166,10 +169,10 @@
             <span class="onoffswitch-switch"></span>
           </label>
         </div>
+        <button id="butClear" type="button">Clear Text</button>
       </div>
       <div class="right">
-        <span id="fpsCounter"></span>
-        <button id="butClear" type="button">Clear Text</button>
+        <button id="butShowConsole">Show Console</button>
       </div>
     </footer>
   </body>

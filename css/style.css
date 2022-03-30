@@ -125,8 +125,16 @@
     display: none;
   }
 
+  .left.hidden {
+    display: none;
+  }
+
   .dimmed {
-    opacity: 0.5;
+    opacity: 0.35;
+  }
+
+  ol li {
+    transition: opacity 0.75s;
   }
 
   .notSupported {
@@ -172,23 +180,17 @@
 
   #app {
     width: 100%;
-    height: calc(100vh - 310px);
+    height: calc(100vh - 275px);
     overflow-y: scroll;
     scroll-behavior: smooth;
   }
 
   #app.with-console {
-    height: calc(100vh - 510px);
+    height: calc(100vh - 515px);
   }
 
   #commands {
     transition: height 0.5s;
-  }
-
-  #butShowConsole {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
   }
 
   #log {
@@ -213,13 +215,8 @@
   }
 
   #commands {
-    position: relative;
-    margin: 0 auto;
+    min-width: 400px;
     overflow-y: auto;
-    padding: 0 60px;
-    min-width: 600px;
-    justify-content: center;
-    align-items: center;
   }
 
   #app #commands {
@@ -331,7 +328,7 @@
     margin-right: 10px;
   }
 
-  #butClear {
+  #butShowConsole {
     margin-top: 10px;
   }
 
