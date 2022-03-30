@@ -59,6 +59,7 @@ let activePanels = [];
 let bytesReceived = 0;
 let currentBoard;
 let buttonState = 0;
+let showConsole = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     // detect debug setting from querystring
@@ -83,17 +84,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     butShowConsole.addEventListener("click", () => {
-      // reveal the console log and its widgets
+      showConsole = !showConsole
+
+      // hide/show the console log and its widgets
+      const consoleItemsMethod = showConsole ? "remove" : "add"
       for (let idx = 0; idx < consoleItems.length; idx++) {
-        consoleItems.item(idx).classList.remove("hidden")
+        consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
       }
-      // scroll it to the bottom
-      log.scrollTop = log.scrollHeight
       // hide the show button
-      butShowConsole.classList.add("hidden")
+      butShowConsole.innerHTML = showConsole ? "Hide Console" : "Show Console"
       // scroll the app div as well
-      appDiv.classList.add("with-console")
-      appDiv.scrollTop = appDiv.scrollHeight
+      const appDivMethod = showConsole ? "add" : "remove"
+      appDiv.classList[appDivMethod]("with-console")
+
+      // scroll both to the bottom a moment after adding
+      setTimeout(() => {
+        log.scrollTop = log.scrollHeight
+        appDiv.scrollTop = appDiv.scrollHeight
+      }, 200)
     })
 
     // register dom event listeners
@@ -364,7 +372,9 @@ function debugMsg(...args) {
 
 function errorMsg(text) {
     logMsg('<span class="error-message">Error:</span> ' + text);
-    console.log(text);
+    console.error(text);
+    // Make sure user sees the error if the log is closed
+    if(!showConsole) { alert(text) }
 }
 
 function formatMacAddr(macAddr) {
