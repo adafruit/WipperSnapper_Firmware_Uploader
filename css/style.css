@@ -172,13 +172,13 @@
 
   #app {
     width: 100%;
-    height: calc(100vh - 330px);
+    height: calc(100vh - 310px);
     overflow-y: scroll;
     scroll-behavior: smooth;
   }
 
   #app.with-console {
-    height: calc(100vh - 530px);
+    height: calc(100vh - 510px);
   }
 
   #commands {
