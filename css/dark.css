@@ -13,6 +13,10 @@ input, select, button {
   color: #fff;
 }
 
+a {
+  color: lightblue;
+}
+
 .footer button {
   border-color: #fff;
   background-color: #333;

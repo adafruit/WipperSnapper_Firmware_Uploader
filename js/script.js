@@ -35,6 +35,9 @@ const measurementPeriodId = "0001";
 
 const maxLogLength = 100;
 const log = document.getElementById("log");
+const semverLabel = document.getElementById("semver");
+const butShowConsole = document.getElementById("butShowConsole");
+const consoleItems = document.getElementsByClassName("console-item");
 const butConnect = document.getElementById("butConnect");
 const binSelector = document.getElementById("binSelector");
 const baudRate = document.getElementById("baudRate");
@@ -56,6 +59,7 @@ let activePanels = [];
 let bytesReceived = 0;
 let currentBoard;
 let buttonState = 0;
+let showConsole = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     // detect debug setting from querystring
@@ -78,6 +82,12 @@ document.addEventListener("DOMContentLoaded", () => {
         debugMsg: debugMsg,
         debug: debug,
     });
+
+    butShowConsole.addEventListener("click", () => {
+      showConsole = !showConsole
+      saveSetting("showConsole", showConsole)
+      toggleConsole(showConsole)
+    })
 
     // register dom event listeners
     butConnect.addEventListener("click", () => {
@@ -123,6 +133,8 @@ document.addEventListener("DOMContentLoaded", () => {
  * output stream.
  */
 async function connect() {
+    butConnect.textContent = "Connecting...";
+    butConnect.disabled = true
     logMsg("Connecting...");
     await espTool.connect();
     readLoop().catch((error) => {
@@ -160,15 +172,125 @@ async function initBinSelector() {
     // fetch firmware index from io-rails, a list of available littlefs
     // firmware items, like the example above
     const response = await fetch(`${FIRMWARE_API}/wipper_releases`)
+    // extract the semver from the custom header
+    if(!initSemver(response.headers.get('AIO-WS-Firmware-Semver'))) {
+      console.error("No semver information in the response headers!")
+    }
     // parse and store firmware data for reuse
     latestFirmwares = await(response.json())
 
     // populate the bin select element
     binSelector.innerHTML = '';
-    binSelector.add(createOption(null, "Select Your Board:"))
+    binSelector.add(createOption(null, "Click Here to Find Your Board:"))
     latestFirmwares.forEach(firmware => {
         binSelector.add(createOption(firmware.id, firmware.name));
     })
+
+    // pull default board id out of querystring
+    if(setDefaultBoard()) {
+      // inject board name into alternate step 1
+      const boardNameItems = document.getElementsByClassName('selected-board-name')
+      for (let idx = 0; idx < boardNameItems.length; idx++) {
+        boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
+      }
+      // show alternate step 1
+      const step1Items = document.getElementsByClassName('step-1')
+      for (let idx = 0; idx < step1Items.length; idx++) {
+        step1Items.item(idx).classList.add("hidden")
+      }
+      const step1AltItems = document.getElementsByClassName('step-1 alt')
+      for (let idx = 0; idx < step1AltItems.length; idx++) {
+        step1AltItems.item(idx).classList.remove("hidden")
+      }
+    } else {
+      binSelector.addEventListener("change", changeBin);
+    }
+
+    // show next step upon selection
+}
+
+// check the querystring for a default board
+const QUERYSTRING_BOARD_KEY = 'board'
+function getBoardFromQuerystring() {
+    const location = new URL(document.location)
+    const params = new URLSearchParams(location.search)
+    return params.get(QUERYSTRING_BOARD_KEY)
+}
+
+function setDefaultBoard() {
+    const board = getBoardFromQuerystring()
+    if(board && hasBoard(board)) {
+      binSelector.value = board
+      showStep(2, false)
+      return true
+    }
+}
+
+function hasBoard(board) {
+    for (let opt of binSelector.options) {
+      console.log(opt.value, board)
+      if(opt.value == board) { return opt }
+    }
+}
+
+function changeBin(selectedBin) {
+  (selectedBin.target.value && selectedBin.target.value != "null") ?
+    showStep(2) :
+    hideStep(2)
+}
+
+function showStep(stepNumber, hideLowerSteps=true) {
+  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
+    stepEl.classList.remove("hidden")
+  }
+
+  if(hideLowerSteps) {
+    // dim all prior steps
+    for (let step = stepNumber - 1; step > 0; step--) {
+      for (let stepEl of document.getElementsByClassName(`step-${step}`)) {
+        stepEl.classList.add("dimmed")
+      }
+    }
+  }
+
+  // scroll to the bottom next frame
+  setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
+}
+
+function hideStep(stepNumber) {
+  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
+    stepEl.classList.add("hidden")
+  }
+}
+
+function toggleConsole(show) {
+  // hide/show the console log and its widgets
+  const consoleItemsMethod = show ? "remove" : "add"
+  for (let idx = 0; idx < consoleItems.length; idx++) {
+    consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
+  }
+  // hide the show button
+  butShowConsole.innerHTML = show ? "Hide Console" : "Show Console"
+  // scroll the app div as well
+  const appDivMethod = show ? "add" : "remove"
+  appDiv.classList[appDivMethod]("with-console")
+
+  // scroll both to the bottom a moment after adding
+  setTimeout(() => {
+    log.scrollTop = log.scrollHeight
+    appDiv.scrollTop = appDiv.scrollHeight
+  }, 200)
+
+}
+
+let semver
+function initSemver(newSemver) {
+  if(!newSemver) { return }
+
+  semver = newSemver
+  semverLabel.innerHTML = semver
+
+  return true
 }
 
 function lookupFirmwareByBinSelector() {
@@ -216,7 +338,9 @@ function updateProgress(part, percentage) {
  */
 async function disconnect() {
     toggleUIToolbar(false);
-    await espTool.disconnect();
+    if(espTool.connected()) {
+      await espTool.disconnect();
+    }
     toggleUIConnected(false);
 }
 
@@ -302,7 +426,9 @@ function debugMsg(...args) {
 
 function errorMsg(text) {
     logMsg('<span class="error-message">Error:</span> ' + text);
-    console.log(text);
+    console.error(text);
+    // Make sure user sees the error if the log is closed
+    if(!showConsole) { alert(text) }
 }
 
 function formatMacAddr(macAddr) {
@@ -356,6 +482,7 @@ async function clickConnect() {
     toggleUIConnected(true);
     try {
         if (await espTool.sync()) {
+            showStep(3);
             toggleUIToolbar(true);
             appDiv.classList.add("connected");
             let baud = parseInt(baudRate.value);
@@ -514,6 +641,8 @@ async function mergeSettings() {
 }
 
 async function programScript(stages) {
+    butProgram.disabled = true
+    butProgramNvm.disabled = true
     try {
         await fetchFirmwareForSelectedBoard()
     } catch(error) {
@@ -537,7 +666,7 @@ async function programScript(stages) {
         } else if (stages[i] == stage_flash_structure) {
             for (const [offset, filename] of Object.entries(settings.structure)) {
                 steps.push({
-                    name: "Flashing " + filename,
+                    name: "Flashing " + filename.replace('VERSION', semver),
                     func: async function (params) {
                         let firmware = await getFirmware(params.filename);
                         await espTool.flashData(firmware, params.offset, 0);
@@ -587,6 +716,7 @@ async function programScript(stages) {
 
     progress.classList.remove("hidden");
     stepname.classList.remove("hidden");
+    showStep(5)
 
     for (let i = 0; i < steps.length; i++) {
         stepname.innerText = steps[i].name + " (" + (i + 1) + "/" + steps.length + ")...";
@@ -611,6 +741,7 @@ async function programScript(stages) {
     checkProgrammable();
     disconnect();
     logMsg("To run the new firmware, please reset your device.");
+    showStep(6);
 }
 
 function getValidFields() {
@@ -632,8 +763,11 @@ function getValidFields() {
  * Check if the conditions to program the device are sufficient
  */
 async function checkProgrammable() {
-    butProgramNvm.disabled = getValidFields().length < 4;
-    butProgram.disabled = getValidFields().length < 4;
+    if(getValidFields().length < 4) {
+      hideStep(4)
+    } else {
+      showStep(4, false)
+    }
 }
 
 /**
@@ -692,9 +826,13 @@ function toggleUIToolbar(show) {
 function toggleUIConnected(connected) {
     let lbl = "Connect";
     if (connected) {
-        lbl = "Disconnect";
+        lbl = "Connected";
+        butConnect.disabled = true
+        binSelector.disabled = true
     } else {
         toggleUIToolbar(false);
+        butConnect.disabled = false
+        binSelector.disabled = false
     }
     butConnect.textContent = lbl;
 }
@@ -704,10 +842,12 @@ function loadAllSettings() {
     autoscroll.checked = loadSetting("autoscroll", true);
     baudRate.value = loadSetting("baudrate", baudRates[0]);
     darkMode.checked = loadSetting("darkmode", false);
+    showConsole = loadSetting('showConsole', false);
+    toggleConsole(showConsole);
 }
 
 function loadSetting(setting, defaultValue) {
-    return  JSON.parse(window.localStorage.getItem(setting)) || defaultValue;
+    return JSON.parse(window.localStorage.getItem(setting)) || defaultValue;
 }
 
 function saveSetting(setting, value) {

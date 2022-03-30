@@ -12,6 +12,8 @@
       }
     </script>
 
+    <link rel="shortcut icon" type="image/png" href="images/favicon.ico"/>
+
     <!-- import the web page's stylesheets along with the themes -->
     <link rel="stylesheet" href="https://use.typekit.net/qtk5kiq.css">
     <link rel="stylesheet" href="css/style.css">
@@ -31,77 +33,141 @@
         <img src="https://adafruit.github.io/Adafruit_WebSerial_ESPTool/assets/adafruit-logo.svg" class="Adafruit-Logo">
       </div>
       <div class="right">
-        <select id="binSelector">
-          <option value="">Loading Firmware...</option>
-        </select>&nbsp;
-        <select id="baudRate"></select>
-        <button id="butConnect" type="button">Connect</button>
+        <select id="baudRate" style="display: none;"></select>
+        <label for="darkmode">
+          Dark Mode
+        </label>
+        <div class="onoffswitch">
+          <input type="checkbox" name="darkmode" class="onoffswitch-checkbox" id="darkmode">
+          <label class="onoffswitch-label" for="darkmode">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
       </div>
     </header>
     <main class="main">
       <div id="notSupported" class="notSupported">
-        Sorry, <b>Web Serial</b> is not supported on this device, make sure you're
-        running Chrome 78 or later and have enabled the
-        <code>#enable-experimental-web-platform-features</code> flag in
-        <code>chrome://flags</code>
+        Sorry, <b>Web Serial</b> is not supported on your browser at this time. Browsers we expect to work:
+        <ul>
+          <li>Google Chrome 89 (and higher)</li>
+          <li>Microsoft Edge 89 (and higher)</li>
+          <li>Opera 75 (and higher)</li>
+        </ul>
       </div>
       <div class="subheader">
         <div class="left">
-          <span class="title">Install Adafruit.io WipperSnapper for ESP32/ESP8266</span>
-          <p><strong>This website is only compatible with the <a href="https://www.adafruit.com/product/3405">Adafruit Feather HUZZAH32</a> and the <a href="https://www.adafruit.com/product/3046">Adafruit Feather Huzzah ESP8266</a>.</strong></p>
-          <p>For all other boards - please visit the WipperSnapper Quick Start Guide and follow the steps for your hardware: <a href="https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper">https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper</a></p>
-        </div>
-        <div class="right">
-          <label for="darkmode">
-            Dark Mode
-          </label>
-          <div class="onoffswitch">
-            <input type="checkbox" name="darkmode" class="onoffswitch-checkbox" id="darkmode">
-            <label class="onoffswitch-label" for="darkmode">
-              <span class="onoffswitch-inner"></span>
-              <span class="onoffswitch-switch"></span>
-            </label>
-          </div>
+          <span class="title">Install Adafruit.IO WipperSnapper</span>
+          <span><strong>This tool will install WipperSnapper version <em><span id="semver">Loading...</span></em> on certain boards. Click below to see if your board is supported, then follow the instructions to install the firmware.</strong></span>
         </div>
       </div>
       <div id="app">
-        <div id="commands">
-          <div class="field">
-            <label><span>SSID:</span>
-              <input id="network_type_wifi_native.network_ssid" class="partition-data" type="text" placeholder="WiFi SSID" value="" />
-            </label>
-          </div>
-          <div class="field">
-            <label><span>Password:</span>
-              <input id="network_type_wifi_native.network_password" class="partition-data" type="text" placeholder="WiFi Password" value=""  />
-            </label>
-          </div>
-          <div class="field">
-            <label><span>Adafruit IO Username:</span>
-              <input id="io_username" class="partition-data" type="text" placeholder="AIO Username" value="" />
-            </label>
-          </div>
-          <div class="field">
-            <label><span>Adafruit IO Key:</span>
-              <input id="io_key" class="partition-data" type="text" placeholder="AIO Key" value="" />
-            </label>
-          </div>
-          <div class="buttons">
-            <div id="stepname" class="hidden"></div>
-          </div>
-          <div class="buttons">
-            <div id="progressBar" class="progress-bar hidden"><div></div></div>
-          </div>
-         <div class="buttons">
-            <button id="butProgram" type="button" disabled="disabled">Install WipperSnapper</button>
-            <button id="butProgramNvm" type="button" disabled="disabled">Update Credentials ONLY</button>
-          </div>
-        </div>
-        <div id="log"></div>
+        <ol class="tutorial-steps">
+          <li class="step-1">
+            <p>
+              <select id="binSelector">
+                <option value="">Loading Firmware...</option>
+              </select>
+            </p>
+            <ul>
+              <li><p><em>Don't see your board? <a href="https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper">Visit the quick-start guide</a> and follow the instructions for your hardware.</em></p></li>
+            </ul>
+          </li>
+
+          <li class="step-1 alt hidden">
+            <p>Using <strong><span class="selected-board-name">BOARD NAME</span></strong>.</p>
+            <ul>
+              <li><p><em>Not your board? <a href="/">Click here</a> to select a supported board from a list.</em></p></li>
+            </ul>
+          </li>
+
+          <li class="step-2 hidden">
+            <p>
+              Make sure your board is plugged into this computer via a Serial connection using a USB Cable.
+            </p>
+            <ul>
+              <li><p><em><strong>NOTE:</strong> A lot of people end up using charge-only USB cables and it is very frustrating! Make sure you have a USB cable you know is good for data sync.</em></p></li>
+            </ul>
+          </li>
+
+          <li class="step-2 hidden">
+            <p>
+              <button id="butConnect" type="button">
+                Connect
+              </button>
+              Click this button to open the Web Serial connection menu.
+            </p>
+
+            <p>There may be many devices listed, such as your remembered Bluetooth peripherals, anything else plugged into USB, etc.</p>
+
+            <p>
+              If you aren't sure which to choose, look for words like "USB", "UART", and "Bridge Controller". There may be more than one right option depending on your system configuration. Experiment if needed.
+          </li>
+
+          <li class="step-3 hidden">
+            <p><strong>Do not disconnect your board from your computer from here on!</strong></p>
+          </li>
+
+          <li class="step-3 hidden">
+            <p>Enter the credentials for the wifi network your board will connect to, as well as your Adafruit IO Username and IO Key</p>
+
+            <ul>
+              <li><p><em><strong>NOTE:</strong> Your wifi network must be using 2.4Ghz frequency.</em></p></li>
+            </ul>
+
+            <div id="commands">
+              <div class="field">
+                <label><span>SSID:</span>
+                  <input id="network_type_wifi_native.network_ssid" class="partition-data" type="text" placeholder="WiFi SSID" value="" />
+                </label>
+              </div>
+              <div class="field">
+                <label><span>Password:</span>
+                  <input id="network_type_wifi_native.network_password" class="partition-data" type="text" placeholder="WiFi Password" value=""  />
+                </label>
+              </div>
+              <div class="field">
+                <label><span>Adafruit IO Username:</span>
+                  <input id="io_username" class="partition-data" type="text" placeholder="AIO Username" value="" />
+                </label>
+              </div>
+              <div class="field">
+                <label><span>Adafruit IO Key:</span>
+                  <input id="io_key" class="partition-data" type="text" placeholder="AIO Key" value="" />
+                </label>
+              </div>
+            </div>
+          </li>
+
+          <li class="step-4 hidden">
+            <p>Click "Install WipperSnapper" to get the process started. If you've already installed the WipperSnapper firmware and simply need to update your credentials, click "Update Credentials ONLY".</p>
+            <div class="buttons" style="text-align: center;">
+               <button id="butProgram" type="button">Install WipperSnapper</button>
+               <button id="butProgramNvm" type="button">Update Credentials ONLY</button>
+             </div>
+          </li>
+
+          <li class="step-5 hidden">
+            <p> WipperSnapper is installing, please wait...</p>
+            <div class="buttons">
+              <div id="stepname" class="hidden"></div>
+            </div>
+            <div class="buttons">
+              <div id="progressBar" class="progress-bar hidden"><div></div></div>
+            </div>
+          </li>
+
+          <li class="step-6 hidden">
+            <p>WipperSnapper successfully installed. <strong>Reset your board</strong> and <a href="https://io.adafruit.com/wippersnapper">visit your WipperSnapper page on Adafruit IO!</a></p>
+          </li>
+        </ol>
       </div>
+
+      <div id="log" class="hidden console-item"></div>
     </main>
+
     <footer class="footer">
-      <div class="left">
+      <div class="left hidden console-item">
         <label for="autoscroll">Autoscroll</label>
         <div class="onoffswitch">
           <input type="checkbox" name="autoscroll" class="onoffswitch-checkbox" id="autoscroll">
@@ -110,10 +176,19 @@
             <span class="onoffswitch-switch"></span>
           </label>
         </div>
+        <button id="butClear" type="button">Clear Text</button>
       </div>
       <div class="right">
-        <span id="fpsCounter"></span>
-        <button id="butClear" type="button">Clear Text</button>
+        <label for="butShowConsole">
+          Show Console
+        </label>
+        <div class="onoffswitch">
+          <input type="checkbox" name="butShowConsole" class="onoffswitch-checkbox" id="butShowConsole">
+          <label class="onoffswitch-label" for="butShowConsole">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
       </div>
     </footer>
   </body>
