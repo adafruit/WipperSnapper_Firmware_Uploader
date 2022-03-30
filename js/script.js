@@ -199,8 +199,51 @@ async function initBinSelector() {
         binSelector.add(createOption(firmware.id, firmware.name));
     })
 
+    // pull default board id out of querystring
+    if(setDefaultBoard()) {
+      // inject board name into alternate step 1
+      const boardNameItems = document.getElementsByClassName('selected-board-name')
+      for (let idx = 0; idx < boardNameItems.length; idx++) {
+        boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
+      }
+      // show alternate step 1
+      const step1Items = document.getElementsByClassName('step-1')
+      for (let idx = 0; idx < step1Items.length; idx++) {
+        step1Items.item(idx).classList.add("hidden")
+      }
+      const step1AltItems = document.getElementsByClassName('step-1 alt')
+      for (let idx = 0; idx < step1AltItems.length; idx++) {
+        step1AltItems.item(idx).classList.remove("hidden")
+      }
+    } else {
+      binSelector.addEventListener("change", changeBin);
+    }
+
     // show next step upon selection
-    binSelector.addEventListener("change", changeBin);
+}
+
+// check the querystring for a default board
+const QUERYSTRING_BOARD_KEY = 'board'
+function getBoardFromQuerystring() {
+    const location = new URL(document.location)
+    const params = new URLSearchParams(location.search)
+    return params.get(QUERYSTRING_BOARD_KEY)
+}
+
+function setDefaultBoard() {
+    const board = getBoardFromQuerystring()
+    if(board && hasBoard(board)) {
+      binSelector.value = board
+      showStep(2, false)
+      return true
+    }
+}
+
+function hasBoard(board) {
+    for (let opt of binSelector.options) {
+      console.log(opt.value, board)
+      if(opt.value == board) { return opt }
+    }
 }
 
 function changeBin(selectedBin) {
@@ -209,14 +252,18 @@ function changeBin(selectedBin) {
     hideStep(2)
 }
 
-function showStep(stepNumber) {
+function showStep(stepNumber, hideLowerSteps=true) {
   for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
     stepEl.classList.remove("hidden")
   }
 
-  // dim the prior steps
-  for (let stepEl of document.getElementsByClassName(`step-${stepNumber-1}`)) {
-    stepEl.classList.add("dimmed")
+  if(hideLowerSteps) {
+    // dim all prior steps
+    for (let step = stepNumber - 1; step > 0; step--) {
+      for (let stepEl of document.getElementsByClassName(`step-${step}`)) {
+        stepEl.classList.add("dimmed")
+      }
+    }
   }
 
   // scroll to the bottom next frame
@@ -712,7 +759,7 @@ async function checkProgrammable() {
     if(getValidFields().length < 4) {
       hideStep(4)
     } else {
-      showStep(4)
+      showStep(4, false)
     }
 }
 
