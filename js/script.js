@@ -85,23 +85,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     butShowConsole.addEventListener("click", () => {
       showConsole = !showConsole
-
-      // hide/show the console log and its widgets
-      const consoleItemsMethod = showConsole ? "remove" : "add"
-      for (let idx = 0; idx < consoleItems.length; idx++) {
-        consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
-      }
-      // hide the show button
-      butShowConsole.innerHTML = showConsole ? "Hide Console" : "Show Console"
-      // scroll the app div as well
-      const appDivMethod = showConsole ? "add" : "remove"
-      appDiv.classList[appDivMethod]("with-console")
-
-      // scroll both to the bottom a moment after adding
-      setTimeout(() => {
-        log.scrollTop = log.scrollHeight
-        appDiv.scrollTop = appDiv.scrollHeight
-      }, 200)
+      saveSetting("showConsole", showConsole)
+      toggleConsole(showConsole)
     })
 
     // register dom event listeners
@@ -274,6 +259,26 @@ function hideStep(stepNumber) {
   for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
     stepEl.classList.add("hidden")
   }
+}
+
+function toggleConsole(show) {
+  // hide/show the console log and its widgets
+  const consoleItemsMethod = show ? "remove" : "add"
+  for (let idx = 0; idx < consoleItems.length; idx++) {
+    consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
+  }
+  // hide the show button
+  butShowConsole.innerHTML = show ? "Hide Console" : "Show Console"
+  // scroll the app div as well
+  const appDivMethod = show ? "add" : "remove"
+  appDiv.classList[appDivMethod]("with-console")
+
+  // scroll both to the bottom a moment after adding
+  setTimeout(() => {
+    log.scrollTop = log.scrollHeight
+    appDiv.scrollTop = appDiv.scrollHeight
+  }, 200)
+
 }
 
 let semver
@@ -835,10 +840,12 @@ function loadAllSettings() {
     autoscroll.checked = loadSetting("autoscroll", true);
     baudRate.value = loadSetting("baudrate", baudRates[0]);
     darkMode.checked = loadSetting("darkmode", false);
+    showConsole = loadSetting('showConsole', false);
+    toggleConsole(showConsole);
 }
 
 function loadSetting(setting, defaultValue) {
-    return  JSON.parse(window.localStorage.getItem(setting)) || defaultValue;
+    return JSON.parse(window.localStorage.getItem(setting)) || defaultValue;
 }
 
 function saveSetting(setting, value) {
