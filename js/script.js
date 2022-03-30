@@ -133,6 +133,8 @@ document.addEventListener("DOMContentLoaded", () => {
  * output stream.
  */
 async function connect() {
+    butConnect.textContent = "Connecting...";
+    butConnect.disabled = true
     logMsg("Connecting...");
     await espTool.connect();
     readLoop().catch((error) => {
