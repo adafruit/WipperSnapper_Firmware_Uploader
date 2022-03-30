@@ -765,6 +765,8 @@ function toggleUIConnected(connected) {
         binSelector.disabled = true
     } else {
         toggleUIToolbar(false);
+        butConnect.disabled = false
+        binSelector.disabled = false
     }
     butConnect.textContent = lbl;
 }
