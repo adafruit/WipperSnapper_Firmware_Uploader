@@ -182,7 +182,7 @@
   #app {
     width: 100%;
     height: calc(100vh - 275px);
-    overflow-y: scroll;
+    overflow-y: auto;
     scroll-behavior: smooth;
   }
 
