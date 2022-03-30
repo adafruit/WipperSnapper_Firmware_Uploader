@@ -339,7 +339,7 @@ function updateProgress(part, percentage) {
 async function disconnect() {
     toggleUIToolbar(false);
     if(espTool.connected()) {
-      await espTool.disconnect();
+        await espTool.disconnect();
     }
     toggleUIConnected(false);
 }
