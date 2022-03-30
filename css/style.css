@@ -133,10 +133,6 @@
     opacity: 0.35;
   }
 
-  ol li {
-    transition: opacity 0.75s;
-  }
-
   .notSupported {
     padding: 1em;
     margin-top: 1em;
@@ -172,10 +168,15 @@
 
   .tutorial-steps li {
     margin-top: 14px;
+    transition: opacity 0.75s;
   }
 
   .tutorial-steps p {
     margin-bottom: 14px;
+  }
+
+  .step-6 {
+    font-size: 20px;
   }
 
   #app {
