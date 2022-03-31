@@ -6,10 +6,22 @@
 const FIRMWARE_API = "//io.adafruit.com"
 const DO_DOWNLOAD = false
 
+const BOARD_TO_CHIP_MAP = {
+  'feather-esp8266': ESP8266,
+  'feather-esp32': ESP32,
+  'feather-esp32-v2-daily': ESP32
+}
+
 let espTool;
 let isConnected = false;
 
-const baudRates = [115200];
+const baudRates = [
+  115200,
+  230400,
+  460800,
+  921600,
+];
+
 const flashSizes = {
     "512KB": 0x00,
     "256KB": 0x10,
