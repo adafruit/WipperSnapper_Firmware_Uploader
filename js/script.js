@@ -192,11 +192,7 @@ async function initBinSelector() {
     latestFirmwares = await(response.json())
 
     // populate the bin select element
-    binSelector.innerHTML = '';
-    binSelector.add(createOption(null, "Click Here to Find Your Board:"))
-    latestFirmwares.forEach(firmware => {
-        binSelector.add(createOption(firmware.id, firmware.name));
-    })
+    populateBinSelector("Click Here to Find Your Board:")
 
     // pull default board id out of querystring
     if(setDefaultBoard()) {
@@ -217,6 +213,16 @@ async function initBinSelector() {
     } else {
       binSelector.addEventListener("change", changeBin);
     }
+function populateBinSelector(title, filter=() => true) {
+    binSelector.innerHTML = '';
+    binSelector.add(createOption(null, title))
+
+    const filteredFirmwares = latestFirmwares.filter(filter)
+    filteredFirmwares.forEach(firmware => {
+        binSelector.add(createOption(firmware.id, firmware.name));
+    })
+
+    return filteredFirmwares.length
 
     // show next step upon selection
 }
