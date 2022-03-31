@@ -248,23 +248,22 @@ function getBoardFromQuerystring() {
 function setDefaultBoard() {
     const board = getBoardFromQuerystring()
     if(board && hasBoard(board)) {
-      binSelector.value = board
-      showStep(2, false)
-      return true
+        binSelector.value = board
+        showStep(2, false)
+        return true
     }
 }
 
 function hasBoard(board) {
     for (let opt of binSelector.options) {
-      console.log(opt.value, board)
-      if(opt.value == board) { return opt }
+        if(opt.value == board) { return opt }
     }
 }
 
-function changeBin(selectedBin) {
-  (selectedBin.target.value && selectedBin.target.value != "null") ?
-    showStep(2) :
-    hideStep(2)
+function changeBin(evt) {
+    (evt.target.value && evt.target.value != "null") ?
+        showStep(2) :
+        hideStep(2)
 }
 
 function showStep(stepNumber, hideLowerSteps=true) {
