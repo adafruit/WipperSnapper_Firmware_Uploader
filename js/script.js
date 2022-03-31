@@ -196,23 +196,18 @@ async function initBinSelector() {
 
     // pull default board id out of querystring
     if(setDefaultBoard()) {
-      // inject board name into alternate step 1
-      const boardNameItems = document.getElementsByClassName('selected-board-name')
-      for (let idx = 0; idx < boardNameItems.length; idx++) {
-        boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
-      }
-      // show alternate step 1
-      const step1Items = document.getElementsByClassName('step-1')
-      for (let idx = 0; idx < step1Items.length; idx++) {
-        step1Items.item(idx).classList.add("hidden")
-      }
-      const step1AltItems = document.getElementsByClassName('step-1 alt')
-      for (let idx = 0; idx < step1AltItems.length; idx++) {
-        step1AltItems.item(idx).classList.remove("hidden")
-      }
+        // inject board name into alternate step 1
+        const boardNameItems = document.getElementsByClassName('selected-board-name')
+        for (let idx = 0; idx < boardNameItems.length; idx++) {
+          boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
+        }
+        // show alternate step 1
+        showAltStepOne()
     } else {
-      binSelector.addEventListener("change", changeBin);
+        binSelector.addEventListener("change", changeBin);
     }
+}
+
 function populateBinSelector(title, filter=() => true) {
     binSelector.innerHTML = '';
     binSelector.add(createOption(null, title))
@@ -223,8 +218,23 @@ function populateBinSelector(title, filter=() => true) {
     })
 
     return filteredFirmwares.length
+}
 
-    // show next step upon selection
+function showStepOne() {
+    doThingOnClass("remove", "hidden", "step-1")
+    doThingOnClass("add", "hidden", "step-1 alt")
+}
+
+function showAltStepOne() {
+    doThingOnClass("add", "hidden", "step-1")
+    doThingOnClass("remove", "hidden", "step-1 alt")
+}
+
+function doThingOnClass(method, thing, classSelector) {
+    const classItems = document.getElementsByClassName(classSelector)
+    for (let idx = 0; idx < classItems.length; idx++) {
+        classItems.item(idx).classList[method](thing)
+    }
 }
 
 // check the querystring for a default board
