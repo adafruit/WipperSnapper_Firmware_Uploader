@@ -531,6 +531,29 @@ async function clickConnect() {
     }
 }
 
+function selectedBoardName() {
+  return lookupFirmwareByBinSelector().name
+}
+
+function checkChipTypeMatchesSelectedBoard(chipType, boardId=null) {
+    // allow overriding which board we're checking against
+    boardId = boardId || binSelector.value
+    // wrap the lookup
+    return (BOARD_TO_CHIP_MAP[boardId] == chipType)
+}
+
+async function setBaudRateIfChipSupports(chipType) {
+    const baud = parseInt(baudRate.value);
+    if (baud == ESP_ROM_BAUD) { return } // already the default
+
+    if (chipType == ESP32) { // only supports the default
+        logMsg("WARNING: ESP32 is having issues working at speeds faster than 115200. Continuing at 115200 for now...");
+        return
+    }
+
+    await changeBaudRate(baud);
+}
+
 /**
  * @name changeBaudRate
  * Change handler for the Baud Rate selector.
