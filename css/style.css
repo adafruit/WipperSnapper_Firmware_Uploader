@@ -215,6 +215,10 @@
     display: none;
   }
 
+  #log a {
+    color: lightblue;
+  }
+
   #commands {
     min-width: 400px;
     overflow-y: auto;
