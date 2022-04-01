@@ -506,23 +506,55 @@ async function clickConnect() {
 
     toggleUIConnected(true);
     try {
-        if (await espTool.sync()) {
-            showStep(3);
-            toggleUIToolbar(true);
-            appDiv.classList.add("connected");
-            let baud = parseInt(baudRate.value);
-            logMsg("Connected to " + (await espTool.chipName()));
-            logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
+        if (!await espTool.sync()) { return }
+
+        const chipType = await espTool.chipType();
+        const chipName = await espTool.chipName();
+
+        toggleUIToolbar(true);
+        appDiv.classList.add("connected");
+        logMsg("Connected to " + (chipName));
+        logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
+
+        const nextStepCallback = async () => {
+            showStep(3)
             espTool = await espTool.runStub();
-            if (baud != ESP_ROM_BAUD) {
-                if ((await espTool.chipType()) == ESP32) {
-                    logMsg(
-                        "WARNING: ESP32 is having issues working at speeds faster than 115200. Continuing at 115200 for now..."
-                    );
-                } else {
-                    await changeBaudRate(baud);
+            await setBaudRateIfChipSupports(chipType);
+        }
+
+        if(!checkChipTypeMatchesSelectedBoard(chipType)) {
+            // narrow the board selector to possible boards
+            const compatibleBoardCount = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
+                return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
+            })
+
+            // reset the bin selector
+            binSelector.disabled = false
+            binSelector.removeEventListener("change", changeBin);
+            binSelector.addEventListener("change", async evt => {
+                // upon new board selection, reveal next step
+                if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
+                    logMsg(`Compatible board selected: <strong>${selectedBoardName()}</strong>`)
+                    await nextStepCallback()
                 }
-            }
+            });
+
+            // reveal step one again for re-selection
+            showStepOne() // TODO: flash some color into step one?
+
+            // nice error
+            // TODO: use compatibleBoardCount to tailor the error
+            errorMsg(`
+              Oops, wrong board!
+                - you selected <strong>${selectedBoardName()}</strong>
+                - you connected <strong>${chipName}</strong>
+
+              You can:
+                - go back to Step 1 and select a compatible board
+                - connect a different board and refresh the browser
+            `)
+        } else {
+            await nextStepCallback()
         }
     } catch (e) {
         errorMsg(e);
