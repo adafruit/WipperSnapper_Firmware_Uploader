@@ -291,9 +291,9 @@ function toggleConsole(show) {
     for (let idx = 0; idx < consoleItems.length; idx++) {
         consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
     }
-    // hide the show button
-    butShowConsole.innerHTML = show ? "Hide Console" : "Show Console"
-    // scroll the app div as well
+    // toggle the button
+    butShowConsole.checked = show
+    // tell the app if it's sharing space with the console
     const appDivMethod = show ? "add" : "remove"
     appDiv.classList[appDivMethod]("with-console")
 
