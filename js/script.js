@@ -524,73 +524,67 @@ async function reset() {
  */
 async function clickConnect() {
     if (espTool.connected()) {
+        // oops we're supposed to be disconnected already
         await disconnect();
-        return;
     }
 
     await connect();
 
+    if (!await espTool.sync()) { return }
     toggleUIConnected(true);
-    try {
-        if (!await espTool.sync()) { return }
+    const chipType = await espTool.chipType();
+    const chipName = await espTool.chipName();
 
-        const chipType = await espTool.chipType();
-        const chipName = await espTool.chipName();
+    toggleUIToolbar(true);
+    appDiv.classList.add("connected");
+    logMsg("Connected to " + (chipName));
+    logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
 
-        toggleUIToolbar(true);
-        appDiv.classList.add("connected");
-        logMsg("Connected to " + (chipName));
-        logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
+    const nextStepCallback = async () => {
+        showStep(3)
+        espTool = await espTool.runStub();
+        await setBaudRateIfChipSupports(chipType);
+    }
 
-        const nextStepCallback = async () => {
-            showStep(3)
-            espTool = await espTool.runStub();
-            await setBaudRateIfChipSupports(chipType);
+    if(!checkChipTypeMatchesSelectedBoard(chipType)) {
+        const boardName = lookupFirmwareByBinSelector().name
+        // narrow the board selector to possible boards
+        const compatible = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
+            return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
+        }) > 0
+
+        // only reveal if there are builds to select
+        if(compatible) {
+          // reset the bin selector
+          binSelector.disabled = false
+          binSelector.removeEventListener("change", changeBin);
+          binSelector.addEventListener("change", async evt => {
+              // upon new board selection, reveal next step
+              if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
+                  logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
+                  await nextStepCallback()
+              }
+          });
         }
 
-        if(!checkChipTypeMatchesSelectedBoard(chipType)) {
-            const boardName = lookupFirmwareByBinSelector().name
-            // narrow the board selector to possible boards
-            const compatible = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
-                return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
-            }) > 0
-
-            // only reveal if there are builds to select
-            if(compatible) {
-              // reset the bin selector
-              binSelector.disabled = false
-              binSelector.removeEventListener("change", changeBin);
-              binSelector.addEventListener("change", async evt => {
-                  // upon new board selection, reveal next step
-                  if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
-                      logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
-                      await nextStepCallback()
-                  }
-              });
-            }
-
-            // if compatible boards exist, tell the user
-            const userOptions = compatible ?
-              `You can:\n  - go back to Step 1 and select a compatible board\n  - connect a different board and refresh the browser` :
-              `We don't have any WipperSnapper builds for this chipset right now!\nVisit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`
-            const forwardLink = !compatible && QUICK_START_LINK
-            const fullMessage = `
+        // if compatible boards exist, tell the user
+        const userOptions = compatible ?
+          `You can:\n  - go back to Step 1 and select a compatible board\n  - connect a different board and refresh the browser` :
+          `We don't have any WipperSnapper builds for this chipset right now!\nVisit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`
+        const forwardLink = !compatible && QUICK_START_LINK
+        const fullMessage = `
 Oops, wrong board!
-  - you selected: <strong>${boardName}</strong>
-  - you connected: <strong>${chipName}</strong>
+- you selected: <strong>${boardName}</strong>
+- you connected: <strong>${chipName}</strong>
 
 ${userOptions}`
 
-            errorMsg(fullMessage, forwardLink)
-            // reveal step one again for re-selection
-            compatible && showStepOne()
-        } else {
-            await nextStepCallback()
-        }
-    } catch (e) {
-        errorMsg(e);
-        await disconnect();
-        return;
+        errorMsg(fullMessage, forwardLink)
+        // reveal step one again for re-selection
+        compatible && showStepOne()
+        await disconnect()
+    } else {
+        await nextStepCallback()
     }
 }
 
