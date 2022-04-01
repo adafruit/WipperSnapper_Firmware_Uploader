@@ -133,6 +133,10 @@
     opacity: 0.35;
   }
 
+  .highlight {
+    background-color: yellow;
+  }
+
   .notSupported {
     padding: 1em;
     margin-top: 1em;
@@ -169,6 +173,7 @@
   .tutorial-steps li {
     margin-top: 14px;
     transition: opacity 0.75s;
+    transition: background-color 1.2s;
   }
 
   .tutorial-steps p {
