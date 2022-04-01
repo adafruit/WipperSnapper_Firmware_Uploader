@@ -446,10 +446,14 @@ function debugMsg(...args) {
 }
 
 function errorMsg(text) {
+    // regular log with red Error: prefix
     logMsg('<span class="error-message">Error:</span> ' + text);
-    console.error(text);
+    // strip html for console and alerts
+    const strippedText = text.replaceAll(/<.*?>/g, "")
+    // all errors go to the browser dev console
+    console.error(strippedText);
     // Make sure user sees the error if the log is closed
-    if(!showConsole) { alert(text) }
+    if(!showConsole) { alert(strippedText) }
 }
 
 function formatMacAddr(macAddr) {
