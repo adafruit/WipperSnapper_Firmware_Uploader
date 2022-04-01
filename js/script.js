@@ -222,6 +222,7 @@ function populateBinSelector(title, filter=() => true) {
 
 function showStepOne() {
     doThingOnClass("remove", "hidden", "step-1")
+    doThingOnClass("remove", "dimmed", "step-1")
     doThingOnClass("add", "hidden", "step-1 alt")
 }
 
