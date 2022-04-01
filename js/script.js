@@ -97,9 +97,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     butShowConsole.addEventListener("click", () => {
-      showConsole = !showConsole
-      saveSetting("showConsole", showConsole)
-      toggleConsole(showConsole)
+        showConsole = !showConsole
+        saveSetting("showConsole", showConsole)
+        toggleConsole(showConsole)
     })
 
     // register dom event listeners
