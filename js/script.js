@@ -382,7 +382,7 @@ async function readLoop() {
 }
 
 function logMsg(text) {
-    log.innerHTML += text + "<br>";
+    log.innerHTML += text.replaceAll("\n", "<br>") + "<br>";
 
     // Remove old log content
     if (log.textContent.split("\n").length > maxLogLength + 1) {
