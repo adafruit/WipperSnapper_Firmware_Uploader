@@ -103,11 +103,24 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 
     // register dom event listeners
-    butConnect.addEventListener("click", () => {
-        clickConnect().catch(async (e) => {
-            errorMsg(e.message);
+    butConnect.addEventListener("click", async () => {
+        try {
+            await clickConnect()
+        } catch(e) {
+            // Default Help Message:
+            // if we've failed to catch the message before now, we need to give
+            // the generic advice: reconnect, refresh, go to support
+            errorMsg(
+                `Error connecting, things to try:\n` +
+                `1. Reset your board and try again.\n` +
+                `  - Look for a little black button near the power port.\n` +
+                `2. Refresh your browser and try again.\n` +
+                `3. Double-check your board and serial port selection.\n` +
+                `4. File a Support request with the following information:\n\n` +
+                `  WipperSnapper Firmware Tool Connection Error: "${e}"\n`
+            );
             disconnect();
-        });
+        }
     });
     butClear.addEventListener("click", clickClear);
     butProgram.addEventListener("click", clickProgram);
