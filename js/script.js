@@ -445,7 +445,7 @@ function debugMsg(...args) {
     }
 }
 
-function errorMsg(text) {
+function errorMsg(text, forwardLink=null) {
     // regular log with red Error: prefix
     logMsg('<span class="error-message">Error:</span> ' + text);
     // strip html for console and alerts
@@ -453,7 +453,15 @@ function errorMsg(text) {
     // all errors go to the browser dev console
     console.error(strippedText);
     // Make sure user sees the error if the log is closed
-    if(!showConsole) { alert(strippedText) }
+    if(!showConsole) {
+      if(forwardLink) {
+        if(confirm(`${strippedText}\nClick 'OK' to be forwarded there now.`)) {
+          document.location = forwardLink
+        }
+      } else {
+        alert(strippedText)
+      }
+    }
 }
 
 function formatMacAddr(macAddr) {
