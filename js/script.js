@@ -535,12 +535,12 @@ async function clickConnect() {
         if(!checkChipTypeMatchesSelectedBoard(chipType)) {
             const boardName = lookupFirmwareByBinSelector().name
             // narrow the board selector to possible boards
-            const compatibleBoardCount = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
+            const compatible = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
                 return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
-            })
+            }) > 0
 
             // only reveal if there are builds to select
-            if(compatibleBoardCount > 0) {
+            if(compatible) {
               // reset the bin selector
               binSelector.disabled = false
               binSelector.removeEventListener("change", changeBin);
@@ -551,24 +551,23 @@ async function clickConnect() {
                       await nextStepCallback()
                   }
               });
-
-              // reveal step one again for re-selection
-              showStepOne() // TODO: flash some color into step one?
             }
 
             // if compatible boards exist, tell the user
-            const userOptions = (compatibleBoardCount > 0) ?
+            const userOptions = compatible ?
               `You can:\n  - go back to Step 1 and select a compatible board\n  - connect a different board and refresh the browser` :
               `We don't have any WipperSnapper builds for this chipset right now!\nVisit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`
-            const forwardLink = compatibleBoardCount <= 0 && QUICK_START_LINK
-
-            // nice error
-            errorMsg(`
+            const forwardLink = !compatible && QUICK_START_LINK
+            const fullMessage = `
 Oops, wrong board!
   - you selected: <strong>${boardName}</strong>
   - you connected: <strong>${chipName}</strong>
 
-${userOptions}`, forwardLink)
+${userOptions}`
+
+            errorMsg(fullMessage, forwardLink)
+            // reveal step one again for re-selection
+            compatible && showStepOne()
         } else {
             await nextStepCallback()
         }
