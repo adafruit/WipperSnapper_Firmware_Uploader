@@ -727,8 +727,11 @@ async function programScript(stages) {
         return
     }
 
+    // pretty print the settings object with VERSION placeholders filled
     const settings = await mergeSettings()
-    logMsg(`Flashing with settings: ${JSON.stringify(settings, null, 2)}`)
+    const settingsString = JSON.stringify(settings, null, 2)
+    const strippedSettings = settingsString.replaceAll('VERSION', semver)
+    logMsg(`Flashing with settings: <pre>${strippedSettings}</pre>`)
 
     let steps = [];
     for (let i = 0; i < stages.length; i++) {
@@ -944,7 +947,7 @@ async function getFirmware(filename) {
       throw new Error(msg)
     }
 
-    logMsg(`Unzipping ${filename}...`)
+    logMsg(`Unzipping ${filename.replace('VERSION', semver)}...`)
     const firmwareFile = await file.getData(new zip.Uint8ArrayWriter())
 
     return firmwareFile.buffer // ESPTool wants an ArrayBuffer
