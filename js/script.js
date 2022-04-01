@@ -267,27 +267,22 @@ function changeBin(evt) {
 }
 
 function showStep(stepNumber, hideLowerSteps=true) {
-  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
-    stepEl.classList.remove("hidden")
-  }
+    // reveal the new step
+    doThingOnClass("remove", "hidden", `step-${stepNumber}`)
 
-  if(hideLowerSteps) {
-    // dim all prior steps
-    for (let step = stepNumber - 1; step > 0; step--) {
-      for (let stepEl of document.getElementsByClassName(`step-${step}`)) {
-        stepEl.classList.add("dimmed")
-      }
+    if(hideLowerSteps) {
+        // dim all prior steps
+        for (let step = stepNumber - 1; step > 0; step--) {
+            doThingOnClass("add", "dimmed", `step-${step}`)
+        }
     }
-  }
 
-  // scroll to the bottom next frame
-  setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
+    // scroll to the bottom next frame
+    setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
 }
 
 function hideStep(stepNumber) {
-  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
-    stepEl.classList.add("hidden")
-  }
+    doThingOnClass("add", "hidden", `step-${stepNumber}`)
 }
 
 function toggleConsole(show) {
