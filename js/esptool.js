@@ -512,17 +512,39 @@ class EspLoader {
    * Closes the Web Serial connection.
    */
   async disconnect() {
+    await this.ensureReaderClosed()
+    await this.ensureOutputStreamClosed()
+    await this.ensurePortClosed()
+  }
+
+  async ensureReaderClosed() {
     if (reader) {
-      await reader.cancel();
-      reader = null;
+      try {
+        await reader.cancel();
+      } catch(e) {
+        console.error(e)
+      }
     }
+    reader = null;
+  }
 
+  async ensureOutputStreamClosed() {
     if (outputStream) {
-      await outputStream.getWriter().close();
-      outputStream = null;
+      try {
+        await outputStream.getWriter().close();
+      } catch(e) {
+        console.error(e)
+      }
     }
+    outputStream = null;
+  }
 
-    await port.close();
+  async ensurePortClosed() {
+    try {
+      await port.close();
+    } catch(e) {
+      console.error(e)
+    }
     port = null;
   }
 
