@@ -4,6 +4,7 @@
 'use strict';
 
 const FIRMWARE_API = "//io.adafruit.com"
+const QUICK_START_LINK = "https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper/installing-wippersnapper"
 const DO_DOWNLOAD = false
 
 const BOARD_TO_CHIP_MAP = {
@@ -538,31 +539,36 @@ async function clickConnect() {
                 return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
             })
 
-            // reset the bin selector
-            binSelector.disabled = false
-            binSelector.removeEventListener("change", changeBin);
-            binSelector.addEventListener("change", async evt => {
-                // upon new board selection, reveal next step
-                if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
-                    logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
-                    await nextStepCallback()
-                }
-            });
+            // only reveal if there are builds to select
+            if(compatibleBoardCount > 0) {
+              // reset the bin selector
+              binSelector.disabled = false
+              binSelector.removeEventListener("change", changeBin);
+              binSelector.addEventListener("change", async evt => {
+                  // upon new board selection, reveal next step
+                  if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
+                      logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
+                      await nextStepCallback()
+                  }
+              });
 
-            // reveal step one again for re-selection
-            showStepOne() // TODO: flash some color into step one?
+              // reveal step one again for re-selection
+              showStepOne() // TODO: flash some color into step one?
+            }
+
+            // if compatible boards exist, tell the user
+            const userOptions = (compatibleBoardCount > 0) ?
+              `You can:\n  - go back to Step 1 and select a compatible board\n  - connect a different board and refresh the browser` :
+              `We don't have any WipperSnapper builds for this chipset right now!\nVisit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`
+            const forwardLink = compatibleBoardCount <= 0 && QUICK_START_LINK
 
             // nice error
-            // TODO: use compatibleBoardCount to tailor the error
             errorMsg(`
-              Oops, wrong board!
-                - you selected <strong>${boardName}</strong>
-                - you connected <strong>${chipName}</strong>
+Oops, wrong board!
+  - you selected: <strong>${boardName}</strong>
+  - you connected: <strong>${chipName}</strong>
 
-              You can:
-                - go back to Step 1 and select a compatible board
-                - connect a different board and refresh the browser
-            `)
+${userOptions}`, forwardLink)
         } else {
             await nextStepCallback()
         }
