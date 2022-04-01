@@ -660,8 +660,8 @@ async function mergeSettings() {
 
     // merge with the defaults and send back
     return {
-      ...BASE_SETTINGS,
-      ...transformedSettings
+        ...BASE_SETTINGS,
+        ...transformedSettings
     }
 }
 
