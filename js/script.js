@@ -523,6 +523,7 @@ async function clickConnect() {
         }
 
         if(!checkChipTypeMatchesSelectedBoard(chipType)) {
+            const boardName = lookupFirmwareByBinSelector().name
             // narrow the board selector to possible boards
             const compatibleBoardCount = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
                 return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
@@ -534,7 +535,7 @@ async function clickConnect() {
             binSelector.addEventListener("change", async evt => {
                 // upon new board selection, reveal next step
                 if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
-                    logMsg(`Compatible board selected: <strong>${selectedBoardName()}</strong>`)
+                    logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
                     await nextStepCallback()
                 }
             });
@@ -546,7 +547,7 @@ async function clickConnect() {
             // TODO: use compatibleBoardCount to tailor the error
             errorMsg(`
               Oops, wrong board!
-                - you selected <strong>${selectedBoardName()}</strong>
+                - you selected <strong>${boardName}</strong>
                 - you connected <strong>${chipName}</strong>
 
               You can:
@@ -561,10 +562,6 @@ async function clickConnect() {
         await disconnect();
         return;
     }
-}
-
-function selectedBoardName() {
-  return lookupFirmwareByBinSelector().name
 }
 
 function checkChipTypeMatchesSelectedBoard(chipType, boardId=null) {
