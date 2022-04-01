@@ -286,55 +286,54 @@ function hideStep(stepNumber) {
 }
 
 function toggleConsole(show) {
-  // hide/show the console log and its widgets
-  const consoleItemsMethod = show ? "remove" : "add"
-  for (let idx = 0; idx < consoleItems.length; idx++) {
-    consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
-  }
-  // hide the show button
-  butShowConsole.innerHTML = show ? "Hide Console" : "Show Console"
-  // scroll the app div as well
-  const appDivMethod = show ? "add" : "remove"
-  appDiv.classList[appDivMethod]("with-console")
+    // hide/show the console log and its widgets
+    const consoleItemsMethod = show ? "remove" : "add"
+    for (let idx = 0; idx < consoleItems.length; idx++) {
+        consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
+    }
+    // hide the show button
+    butShowConsole.innerHTML = show ? "Hide Console" : "Show Console"
+    // scroll the app div as well
+    const appDivMethod = show ? "add" : "remove"
+    appDiv.classList[appDivMethod]("with-console")
 
-  // scroll both to the bottom a moment after adding
-  setTimeout(() => {
-    log.scrollTop = log.scrollHeight
-    appDiv.scrollTop = appDiv.scrollHeight
-  }, 200)
-
+    // scroll both to the bottom a moment after adding
+    setTimeout(() => {
+        log.scrollTop = log.scrollHeight
+        appDiv.scrollTop = appDiv.scrollHeight
+    }, 200)
 }
 
 let semver
 function initSemver(newSemver) {
-  if(!newSemver) { return }
+    if(!newSemver) { return }
 
-  semver = newSemver
-  semverLabel.innerHTML = semver
+    semver = newSemver
+    semverLabel.innerHTML = semver
 
-  return true
+    return true
 }
 
 function lookupFirmwareByBinSelector() {
-  // get the currently selected board id
-  const selectedId = binSelector.value
-  if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
+    // get the currently selected board id
+    const selectedId = binSelector.value
+    if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
 
-  // grab the stored firmware settings for this id
-  let selectedFirmware
-  for (let firmware of latestFirmwares) {
-    if(firmware.id === selectedId) {
-      selectedFirmware = firmware
-      break
+    // grab the stored firmware settings for this id
+    let selectedFirmware
+    for (let firmware of latestFirmwares) {
+        if(firmware.id === selectedId) {
+            selectedFirmware = firmware
+            break
+        }
     }
-  }
 
-  if(!selectedFirmware) {
-    const { text, value } = binSelector.selectedOptions[0]
-    throw new Error(`No firmware entry for: ${text} (${value})`)
-  }
+    if(!selectedFirmware) {
+        const { text, value } = binSelector.selectedOptions[0]
+        throw new Error(`No firmware entry for: ${text} (${value})`)
+    }
 
-  return selectedFirmware
+    return selectedFirmware
 }
 
 function initBaudRate() {
