@@ -392,13 +392,19 @@ async function disconnect() {
  */
 async function readLoop() {
     reader = port.readable.getReader();
-    while (true) {
-        const { value, done } = await reader.read();
-        if (done) {
-            reader.releaseLock();
-            break;
-        }
-        inputBuffer = inputBuffer.concat(Array.from(value));
+    try {
+      while (true) {
+          await reader.ready
+          const { value, done } = await reader.read();
+          if (done) {
+              reader.releaseLock();
+              break;
+          }
+          inputBuffer = inputBuffer.concat(Array.from(value));
+      }
+    } finally {
+      // ensure the lock is cleaned up!
+      reader.releaseLock()
     }
 }
 
