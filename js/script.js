@@ -111,13 +111,13 @@ document.addEventListener("DOMContentLoaded", () => {
             // if we've failed to catch the message before now, we need to give
             // the generic advice: reconnect, refresh, go to support
             errorMsg(
-                `Error connecting, things to try:\n` +
+                `Connection Error, your board may be incompatible. Things to try:\n` +
                 `1. Reset your board and try again.\n` +
                 `  - Look for a little black button near the power port.\n` +
                 `2. Refresh your browser and try again.\n` +
-                `3. Double-check your board and serial port selection.\n` +
-                `4. File a Support request with the following information:\n\n` +
-                `  WipperSnapper Firmware Tool Connection Error: "${e}"\n`
+                `3. Double-check your board type and serial port selection.\n` +
+                `4. Post on the Support Forum (link above) with this info:\n\n` +
+                `"Firmware Tool: ${e}"\n`
             );
             disconnect();
         }
