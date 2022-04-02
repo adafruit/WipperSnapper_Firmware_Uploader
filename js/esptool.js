@@ -4,6 +4,7 @@ let port;
 let reader;
 let inputStream;
 let outputStream;
+let outputStreamWriter;
 let inputBuffer = [];
 
 const esp8266FlashSizes = {
@@ -512,40 +513,28 @@ class EspLoader {
    * Closes the Web Serial connection.
    */
   async disconnect() {
-    await this.ensureReaderClosed()
-    await this.ensureOutputStreamClosed()
-    await this.ensurePortClosed()
-  }
+    if(!port) { return }
 
-  async ensureReaderClosed() {
-    if (reader) {
-      try {
-        await reader.cancel();
-      } catch(e) {
-        console.error(e)
+    try { // if the port's readable stream is open, cancel it
+      if(port.readable?.locked && reader) {
+        await reader.cancel()
       }
-    }
-    reader = null;
-  }
+      reader = null
 
-  async ensureOutputStreamClosed() {
-    if (outputStream) {
-      try {
-        await outputStream.getWriter().close();
-      } catch(e) {
-        console.error(e)
+      // if the port's writeable stream is open, close it
+      if(port.writeable?.locked && outputStreamWriter) {
+        await outputStreamWriter.close()
       }
-    }
-    outputStream = null;
-  }
+      outputStreamWriter = null
 
-  async ensurePortClosed() {
-    try {
+      // close our port
       await port.close();
+
     } catch(e) {
       console.error(e)
     }
-    port = null;
+
+    port = null
   }
 
   /**
@@ -553,9 +542,10 @@ class EspLoader {
    * Gets a writer from the output stream and send the raw data over WebSerial.
    */
   async writeToStream(data) {
-    const writer = outputStream.getWriter();
-    await writer.write(new Uint8Array(data));
-    writer.releaseLock();
+    outputStreamWriter = outputStream.getWriter();
+    await outputStreamWriter.ready
+    await outputStreamWriter.write(new Uint8Array(data));
+    outputStreamWriter.releaseLock();
   }
 
   hexFormatter(bytes) {
