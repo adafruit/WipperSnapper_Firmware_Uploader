@@ -574,23 +574,26 @@ async function clickConnect() {
                   await nextStepCallback()
               }
           });
+
+          // tell the user what's up
+          errorMsg(`Oops, wrong board!\n` +
+            `- you selected: <strong>${boardName}</strong>\n` +
+            `- you connected: <strong>${chipName}</strong>\n` +
+            `You can:\n` +
+            `- go back to Step 1 and select a compatible board\n` +
+            `- connect a different board and refresh the browser`)
+
+          // reveal step one
+          showStepOne()
+          return
         }
 
-        // if any compatible boards exist, tell the user
-        const userOptions = any ?
-          `You can:\n  - go back to Step 1 and select a compatible board\n  - connect a different board and refresh the browser` :
-          `We don't have any WipperSnapper builds for this chipset right now!\nVisit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`
-        const forwardLink = !any && QUICK_START_LINK
-        const fullMessage = `
-Oops, wrong board!
-- you selected: <strong>${boardName}</strong>
-- you connected: <strong>${chipName}</strong>
+        // explain that this tool doesn't support this board
+        errorMsg(`Oops! This tool doesn't support your board, <strong>${chipName}</strong>, but WipperSnapper still might!\n` +
+          `Visit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`, QUICK_START_LINK)
+        // can't use it so go ahead and disconnect
+        await disconnect()
 
-${userOptions}`
-
-        errorMsg(fullMessage, forwardLink)
-        // if we have boards, reveal step one, otherwise disconnect
-        any ? showStepOne() : await disconnect()
     } else {
         await nextStepCallback()
     }
