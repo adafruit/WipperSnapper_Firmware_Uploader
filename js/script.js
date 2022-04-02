@@ -537,15 +537,18 @@ async function clickConnect() {
         await disconnect();
     }
 
+    // we have to connect and sync before we can do anything useful
     await connect();
+    if (!await espTool.sync()) { throw "Synchronization Failure" }
+    // connection is good at this point
 
-    if (!await espTool.sync()) { return }
     toggleUIConnected(true);
+    toggleUIToolbar(true);
+    appDiv.classList.add("connected");
+
     const chipType = await espTool.chipType();
     const chipName = await espTool.chipName();
 
-    toggleUIToolbar(true);
-    appDiv.classList.add("connected");
     logMsg("Connected to " + (chipName));
     logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
 
@@ -555,48 +558,51 @@ async function clickConnect() {
         await setBaudRateIfChipSupports(chipType);
     }
 
-    if(!checkChipTypeMatchesSelectedBoard(chipType)) {
-        const boardName = lookupFirmwareByBinSelector().name
-        // narrow the board selector to possible boards
-        const any = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
-            return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
-        })
-
-        // only reveal if there are builds to select
-        if(any) {
-          // reset the bin selector
-          binSelector.disabled = false
-          binSelector.removeEventListener("change", changeBin);
-          binSelector.addEventListener("change", async evt => {
-              // upon new board selection, reveal next step
-              if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
-                  logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
-                  await nextStepCallback()
-              }
-          });
-
-          // tell the user what's up
-          errorMsg(`Oops, wrong board!\n` +
-            `- you selected: <strong>${boardName}</strong>\n` +
-            `- you connected: <strong>${chipName}</strong>\n` +
-            `You can:\n` +
-            `- go back to Step 1 and select a compatible board\n` +
-            `- connect a different board and refresh the browser`)
-
-          // reveal step one
-          showStepOne()
-          return
-        }
-
-        // explain that this tool doesn't support this board
-        errorMsg(`Oops! This tool doesn't support your board, <strong>${chipName}</strong>, but WipperSnapper still might!\n` +
-          `Visit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`, QUICK_START_LINK)
-        // can't use it so go ahead and disconnect
-        await disconnect()
-
-    } else {
+    // check chip compatibility
+    if(checkChipTypeMatchesSelectedBoard(chipType)) {
         await nextStepCallback()
+        return
     }
+
+    // not compatible, grab the board name for messaging...
+    const boardName = lookupFirmwareByBinSelector().name
+    // ...and reset the selector to only compatible boards, if any!
+    const any = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
+        return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
+    })
+
+    if(any) {
+      // there are compatible boards available
+      // reset the bin selector
+      binSelector.disabled = false
+      binSelector.removeEventListener("change", changeBin);
+      binSelector.addEventListener("change", async evt => {
+          // upon compatible board selection, reveal next step
+          if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
+              logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
+              await nextStepCallback()
+          }
+      });
+
+      // explain all this to the user
+      errorMsg(`Oops, wrong board!\n` +
+        `- you selected: <strong>${boardName}</strong>\n` +
+        `- you connected: <strong>${chipName}</strong>\n` +
+        `You can:\n` +
+        `- go back to Step 1 and select a compatible board\n` +
+        `- connect a different board and refresh the browser`)
+
+      // reveal step one
+      showStepOne()
+      return
+    }
+
+    // no compatible boards available
+    // explain to the user with a link to the appropriate guide
+    errorMsg(`Oops! This tool doesn't support your board, <strong>${chipName}</strong>, but WipperSnapper still might!\n` +
+      `Visit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`, QUICK_START_LINK)
+    // can't use it so disconnect now
+    await disconnect()
 }
 
 function checkChipTypeMatchesSelectedBoard(chipType, boardId=null) {
