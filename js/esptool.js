@@ -579,7 +579,7 @@ class EspLoader {
         if (readBytes.length == 0) {
             let waitingFor = partialPacket === null ? "header" : "content";
             this.debugMsg(1, "Timed out waiting for packet " + waitingFor);
-            console.error("Timed out waiting for packet " + waitingFor)
+            // console.error("Timed out waiting for packet " + waitingFor)
             throw new SlipReadError("Timed out waiting for packet " + waitingFor);
         }
         this.debugMsg(2, "Read " + readBytes.length + " bytes: " + this.hexFormatter(readBytes));
