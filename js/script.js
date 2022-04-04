@@ -306,6 +306,17 @@ function showStep(stepNumber, hideLowerSteps=true) {
         }
     }
 
+    // per-step things, like a state machine
+    switch(stepNumber) {
+        case 3:
+            checkProgrammable()
+            break;
+        case 4:
+            butProgram.disabled = false
+            butProgramNvm.disabled = false
+            break;
+    }
+
     // scroll to the bottom next frame
     setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
 }
