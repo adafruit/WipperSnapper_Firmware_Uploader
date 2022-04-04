@@ -180,7 +180,10 @@ async function connect() {
     logMsg("Connecting...");
     await espTool.connect();
     readLoop().catch((error) => {
+        // Disconnection before complete
         toggleUIConnected(false);
+        showStep(2, { hideHigherSteps: true })
+        errorMsg("Oops, we lost connection to your board before completing the install. Please check your USB connection and click Connect again. Refresh the browser if it becomes unresponsive.")
     });
 }
 
