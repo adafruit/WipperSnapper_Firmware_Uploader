@@ -253,9 +253,9 @@ function populateBinSelector(title, filter=() => true) {
     return any
 }
 
-function showStepOne() {
-    doThingOnClass("remove", "hidden", "step-1")
-    doThingOnClass("remove", "dimmed", "step-1")
+function returnToStepOne() {
+    showStep(1, { hideHigherSteps: false });
+    doThingOnClass("add", "dimmed", "step-2")
     // yellow fade like 2005
     setTimeout(() => doThingOnClass("add", "highlight", "step-1"), 0)
     setTimeout(() => doThingOnClass("remove", "highlight", "step-1"), 1500)
@@ -278,7 +278,7 @@ function setDefaultBoard() {
     const board = getFromQuerystring(QUERYSTRING_BOARD_KEY)
     if(board && hasBoard(board)) {
         binSelector.value = board
-        showStep(2, false)
+        showStep(2, { dimLowerSteps: false })
         return true
     }
 }
@@ -295,15 +295,23 @@ function changeBin(evt) {
         hideStep(2)
 }
 
-function showStep(stepNumber, hideLowerSteps=true) {
+function showStep(stepNumber, options={}) {
+    const dimLowerSteps = !(options.dimLowerSteps === false)
+    const hideHigherSteps = !(options.hideHigherSteps === false)
     // reveal the new step
     doThingOnClass("remove", "hidden", `step-${stepNumber}`)
+    doThingOnClass("remove", "dimmed", `step-${stepNumber}`)
 
-    if(hideLowerSteps) {
-        // dim all prior steps
+    if(dimLowerSteps) {
         for (let step = stepNumber - 1; step > 0; step--) {
             doThingOnClass("add", "dimmed", `step-${step}`)
         }
+    }
+
+    if(hideHigherSteps) {
+      for (let step = stepNumber + 1; step <= 6; step++) {
+          doThingOnClass("add", "hidden", `step-${step}`)
+      }
     }
 
     // per-step things, like a state machine
@@ -612,7 +620,7 @@ async function clickConnect() {
         `- connect a different board and refresh the browser`)
 
       // reveal step one
-      showStepOne()
+      returnToStepOne()
       return
     }
 
@@ -906,7 +914,7 @@ async function checkProgrammable() {
     if(getValidFields().length < 4) {
       hideStep(4)
     } else {
-      showStep(4, false)
+      showStep(4, { dimLowerSteps: false })
     }
 }
 
