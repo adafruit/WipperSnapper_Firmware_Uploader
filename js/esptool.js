@@ -4,6 +4,7 @@ let port;
 let reader;
 let inputStream;
 let outputStream;
+let outputStreamWriter;
 let inputBuffer = [];
 
 const esp8266FlashSizes = {
@@ -512,18 +513,28 @@ class EspLoader {
    * Closes the Web Serial connection.
    */
   async disconnect() {
-    if (reader) {
-      await reader.cancel();
-      reader = null;
+    if(!port) { return }
+
+    try { // if the port's readable stream is open, cancel it
+      if(port.readable?.locked && reader) {
+        await reader.cancel()
+      }
+      reader = null
+
+      // if the port's writeable stream is open, close it
+      if(port.writeable?.locked && outputStreamWriter) {
+        await outputStreamWriter.close()
+      }
+      outputStreamWriter = null
+
+      // close our port
+      await port.close();
+
+    } catch(e) {
+      console.error(e)
     }
 
-    if (outputStream) {
-      await outputStream.getWriter().close();
-      outputStream = null;
-    }
-
-    await port.close();
-    port = null;
+    port = null
   }
 
   /**
@@ -531,9 +542,10 @@ class EspLoader {
    * Gets a writer from the output stream and send the raw data over WebSerial.
    */
   async writeToStream(data) {
-    const writer = outputStream.getWriter();
-    await writer.write(new Uint8Array(data));
-    writer.releaseLock();
+    outputStreamWriter = outputStream.getWriter();
+    await outputStreamWriter.ready
+    await outputStreamWriter.write(new Uint8Array(data));
+    outputStreamWriter.releaseLock();
   }
 
   hexFormatter(bytes) {
@@ -567,7 +579,7 @@ class EspLoader {
         if (readBytes.length == 0) {
             let waitingFor = partialPacket === null ? "header" : "content";
             this.debugMsg(1, "Timed out waiting for packet " + waitingFor);
-            console.error("Timed out waiting for packet " + waitingFor)
+            // console.error("Timed out waiting for packet " + waitingFor)
             throw new SlipReadError("Timed out waiting for packet " + waitingFor);
         }
         this.debugMsg(2, "Read " + readBytes.length + " bytes: " + this.hexFormatter(readBytes));
@@ -717,7 +729,7 @@ class EspLoader {
    */
   async sync() {
     this.logMsg("Performing sync...")
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 5; i++) {
       inputBuffer = []
       let response = await this._sync();
       if (response) {
@@ -728,7 +740,7 @@ class EspLoader {
       await this.sleep(100);
     }
 
-    throw("Couldn't sync to ESP. Try resetting.");
+    throw("Synchronization Failure");
   };
 
   /**

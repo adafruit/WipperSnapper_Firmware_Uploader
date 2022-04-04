@@ -4,12 +4,25 @@
 'use strict';
 
 const FIRMWARE_API = "//io.adafruit.com"
+const QUICK_START_LINK = "https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper/installing-wippersnapper"
 const DO_DOWNLOAD = false
+
+const BOARD_TO_CHIP_MAP = {
+  'feather-esp8266': ESP8266,
+  'feather-esp32': ESP32,
+  'feather-esp32-v2-daily': ESP32
+}
 
 let espTool;
 let isConnected = false;
 
-const baudRates = [115200];
+const baudRates = [
+  115200,
+  230400,
+  460800,
+  921600,
+];
+
 const flashSizes = {
     "512KB": 0x00,
     "256KB": 0x10,
@@ -84,17 +97,30 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     butShowConsole.addEventListener("click", () => {
-      showConsole = !showConsole
-      saveSetting("showConsole", showConsole)
-      toggleConsole(showConsole)
+        showConsole = !showConsole
+        saveSetting("showConsole", showConsole)
+        toggleConsole(showConsole)
     })
 
     // register dom event listeners
-    butConnect.addEventListener("click", () => {
-        clickConnect().catch(async (e) => {
-            errorMsg(e.message);
+    butConnect.addEventListener("click", async () => {
+        try {
+            await clickConnect()
+        } catch(e) {
+            // Default Help Message:
+            // if we've failed to catch the message before now, we need to give
+            // the generic advice: reconnect, refresh, go to support
+            errorMsg(
+                `Connection Error, your board may be incompatible. Things to try:\n` +
+                `1. Reset your board and try again.\n` +
+                `  - Look for a little black button near the power port.\n` +
+                `2. Refresh your browser and try again.\n` +
+                `3. Double-check your board type and serial port selection.\n` +
+                `4. Post on the Support Forum (link above) with this info:\n\n` +
+                `"Firmware Tool: ${e}"\n`
+            );
             disconnect();
-        });
+        }
     });
     butClear.addEventListener("click", clickClear);
     butProgram.addEventListener("click", clickProgram);
@@ -180,33 +206,56 @@ async function initBinSelector() {
     latestFirmwares = await(response.json())
 
     // populate the bin select element
-    binSelector.innerHTML = '';
-    binSelector.add(createOption(null, "Click Here to Find Your Board:"))
-    latestFirmwares.forEach(firmware => {
-        binSelector.add(createOption(firmware.id, firmware.name));
-    })
+    populateBinSelector("Click Here to Find Your Board:")
 
     // pull default board id out of querystring
     if(setDefaultBoard()) {
-      // inject board name into alternate step 1
-      const boardNameItems = document.getElementsByClassName('selected-board-name')
-      for (let idx = 0; idx < boardNameItems.length; idx++) {
-        boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
-      }
-      // show alternate step 1
-      const step1Items = document.getElementsByClassName('step-1')
-      for (let idx = 0; idx < step1Items.length; idx++) {
-        step1Items.item(idx).classList.add("hidden")
-      }
-      const step1AltItems = document.getElementsByClassName('step-1 alt')
-      for (let idx = 0; idx < step1AltItems.length; idx++) {
-        step1AltItems.item(idx).classList.remove("hidden")
-      }
+        // inject board name into alternate step 1
+        const boardNameItems = document.getElementsByClassName('selected-board-name')
+        for (let idx = 0; idx < boardNameItems.length; idx++) {
+          boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
+        }
+        // show alternate step 1
+        showAltStepOne()
     } else {
-      binSelector.addEventListener("change", changeBin);
+        binSelector.addEventListener("change", changeBin);
     }
+}
 
-    // show next step upon selection
+function populateBinSelector(title, filter=() => true) {
+    binSelector.innerHTML = '';
+
+    const filteredFirmwares = latestFirmwares.filter(filter)
+    const any = filteredFirmwares.length > 0
+
+    binSelector.add(createOption(null, any ? title : 'No Compatible Boards'))
+
+    filteredFirmwares.forEach(firmware => {
+        binSelector.add(createOption(firmware.id, firmware.name));
+    })
+
+    return any
+}
+
+function showStepOne() {
+    doThingOnClass("remove", "hidden", "step-1")
+    doThingOnClass("remove", "dimmed", "step-1")
+    // yellow fade like 2005
+    setTimeout(() => doThingOnClass("add", "highlight", "step-1"), 0)
+    setTimeout(() => doThingOnClass("remove", "highlight", "step-1"), 1500)
+    doThingOnClass("add", "hidden", "step-1 alt")
+}
+
+function showAltStepOne() {
+    doThingOnClass("add", "hidden", "step-1")
+    doThingOnClass("remove", "hidden", "step-1 alt")
+}
+
+function doThingOnClass(method, thing, classSelector) {
+    const classItems = document.getElementsByClassName(classSelector)
+    for (let idx = 0; idx < classItems.length; idx++) {
+        classItems.item(idx).classList[method](thing)
+    }
 }
 
 // check the querystring for a default board
@@ -220,99 +269,92 @@ function getBoardFromQuerystring() {
 function setDefaultBoard() {
     const board = getBoardFromQuerystring()
     if(board && hasBoard(board)) {
-      binSelector.value = board
-      showStep(2, false)
-      return true
+        binSelector.value = board
+        showStep(2, false)
+        return true
     }
 }
 
 function hasBoard(board) {
     for (let opt of binSelector.options) {
-      console.log(opt.value, board)
-      if(opt.value == board) { return opt }
+        if(opt.value == board) { return opt }
     }
 }
 
-function changeBin(selectedBin) {
-  (selectedBin.target.value && selectedBin.target.value != "null") ?
-    showStep(2) :
-    hideStep(2)
+function changeBin(evt) {
+    (evt.target.value && evt.target.value != "null") ?
+        showStep(2) :
+        hideStep(2)
 }
 
 function showStep(stepNumber, hideLowerSteps=true) {
-  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
-    stepEl.classList.remove("hidden")
-  }
+    // reveal the new step
+    doThingOnClass("remove", "hidden", `step-${stepNumber}`)
 
-  if(hideLowerSteps) {
-    // dim all prior steps
-    for (let step = stepNumber - 1; step > 0; step--) {
-      for (let stepEl of document.getElementsByClassName(`step-${step}`)) {
-        stepEl.classList.add("dimmed")
-      }
+    if(hideLowerSteps) {
+        // dim all prior steps
+        for (let step = stepNumber - 1; step > 0; step--) {
+            doThingOnClass("add", "dimmed", `step-${step}`)
+        }
     }
-  }
 
-  // scroll to the bottom next frame
-  setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
+    // scroll to the bottom next frame
+    setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
 }
 
 function hideStep(stepNumber) {
-  for (let stepEl of document.getElementsByClassName(`step-${stepNumber}`)) {
-    stepEl.classList.add("hidden")
-  }
+    doThingOnClass("add", "hidden", `step-${stepNumber}`)
 }
 
 function toggleConsole(show) {
-  // hide/show the console log and its widgets
-  const consoleItemsMethod = show ? "remove" : "add"
-  for (let idx = 0; idx < consoleItems.length; idx++) {
-    consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
-  }
-  // hide the show button
-  butShowConsole.innerHTML = show ? "Hide Console" : "Show Console"
-  // scroll the app div as well
-  const appDivMethod = show ? "add" : "remove"
-  appDiv.classList[appDivMethod]("with-console")
+    // hide/show the console log and its widgets
+    const consoleItemsMethod = show ? "remove" : "add"
+    for (let idx = 0; idx < consoleItems.length; idx++) {
+        consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
+    }
+    // toggle the button
+    butShowConsole.checked = show
+    // tell the app if it's sharing space with the console
+    const appDivMethod = show ? "add" : "remove"
+    appDiv.classList[appDivMethod]("with-console")
 
-  // scroll both to the bottom a moment after adding
-  setTimeout(() => {
-    log.scrollTop = log.scrollHeight
-    appDiv.scrollTop = appDiv.scrollHeight
-  }, 200)
-
+    // scroll both to the bottom a moment after adding
+    setTimeout(() => {
+        log.scrollTop = log.scrollHeight
+        appDiv.scrollTop = appDiv.scrollHeight
+    }, 200)
 }
 
 let semver
 function initSemver(newSemver) {
-  if(!newSemver) { return }
+    if(!newSemver) { return }
 
-  semver = newSemver
-  semverLabel.innerHTML = semver
+    semver = newSemver
+    semverLabel.innerHTML = semver
 
-  return true
+    return true
 }
 
 function lookupFirmwareByBinSelector() {
-  // get the currently selected board id
-  const selectedId = binSelector.value
-  if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
+    // get the currently selected board id
+    const selectedId = binSelector.value
+    if(!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
 
-  // grab the stored firmware settings for this id
-  let selectedFirmware
-  for (let firmware of latestFirmwares) {
-    if(firmware.id === selectedId) {
-      selectedFirmware = firmware
-      break
+    // grab the stored firmware settings for this id
+    let selectedFirmware
+    for (let firmware of latestFirmwares) {
+        if(firmware.id === selectedId) {
+            selectedFirmware = firmware
+            break
+        }
     }
-  }
 
-  if(!selectedFirmware) {
-    const { text, value } = binSelector.selectedOptions[0]
-    throw new Error(`No firmware entry for: ${text} (${value})`)
-  }
+    if(!selectedFirmware) {
+        const { text, value } = binSelector.selectedOptions[0]
+        throw new Error(`No firmware entry for: ${text} (${value})`)
+    }
 
-  return selectedFirmware
+    return selectedFirmware
 }
 
 function initBaudRate() {
@@ -350,18 +392,24 @@ async function disconnect() {
  */
 async function readLoop() {
     reader = port.readable.getReader();
-    while (true) {
-        const { value, done } = await reader.read();
-        if (done) {
-            reader.releaseLock();
-            break;
-        }
-        inputBuffer = inputBuffer.concat(Array.from(value));
+    try {
+      while (true) {
+          await reader.ready
+          const { value, done } = await reader.read();
+          if (done) {
+              reader.releaseLock();
+              break;
+          }
+          inputBuffer = inputBuffer.concat(Array.from(value));
+      }
+    } finally {
+      // ensure the lock is cleaned up!
+      reader.releaseLock()
     }
 }
 
 function logMsg(text) {
-    log.innerHTML += text + "<br>";
+    log.innerHTML += text.replaceAll("\n", "<br>") + "<br>";
 
     // Remove old log content
     if (log.textContent.split("\n").length > maxLogLength + 1) {
@@ -424,11 +472,23 @@ function debugMsg(...args) {
     }
 }
 
-function errorMsg(text) {
+function errorMsg(text, forwardLink=null) {
+    // regular log with red Error: prefix
     logMsg('<span class="error-message">Error:</span> ' + text);
-    console.error(text);
+    // strip html for console and alerts
+    const strippedText = text.replaceAll(/<.*?>/g, "")
+    // all errors go to the browser dev console
+    console.error(strippedText);
     // Make sure user sees the error if the log is closed
-    if(!showConsole) { alert(text) }
+    if(!showConsole) {
+      if(forwardLink) {
+        if(confirm(`${strippedText}\nClick 'OK' to be forwarded there now.`)) {
+          document.location = forwardLink
+        }
+      } else {
+        alert(strippedText)
+      }
+    }
 }
 
 function formatMacAddr(macAddr) {
@@ -473,37 +533,95 @@ async function reset() {
  */
 async function clickConnect() {
     if (espTool.connected()) {
+        // oops we're supposed to be disconnected already
         await disconnect();
-        return;
     }
 
+    // we have to connect and sync before we can do anything useful
     await connect();
+    if (!await espTool.sync()) { throw "Synchronization Failure" }
+    // connection is good at this point
 
     toggleUIConnected(true);
-    try {
-        if (await espTool.sync()) {
-            showStep(3);
-            toggleUIToolbar(true);
-            appDiv.classList.add("connected");
-            let baud = parseInt(baudRate.value);
-            logMsg("Connected to " + (await espTool.chipName()));
-            logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
-            espTool = await espTool.runStub();
-            if (baud != ESP_ROM_BAUD) {
-                if ((await espTool.chipType()) == ESP32) {
-                    logMsg(
-                        "WARNING: ESP32 is having issues working at speeds faster than 115200. Continuing at 115200 for now..."
-                    );
-                } else {
-                    await changeBaudRate(baud);
-                }
-            }
-        }
-    } catch (e) {
-        errorMsg(e);
-        await disconnect();
-        return;
+    toggleUIToolbar(true);
+    appDiv.classList.add("connected");
+
+    const chipType = await espTool.chipType();
+    const chipName = await espTool.chipName();
+
+    logMsg("Connected to " + (chipName));
+    logMsg("MAC Address: " + formatMacAddr(espTool.macAddr()));
+
+    const nextStepCallback = async () => {
+        showStep(3)
+        espTool = await espTool.runStub();
+        await setBaudRateIfChipSupports(chipType);
     }
+
+    // check chip compatibility
+    if(checkChipTypeMatchesSelectedBoard(chipType)) {
+        await nextStepCallback()
+        return
+    }
+
+    // not compatible, grab the board name for messaging...
+    const boardName = lookupFirmwareByBinSelector().name
+    // ...and reset the selector to only compatible boards, if any!
+    const any = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
+        return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
+    })
+
+    if(any) {
+      // there are compatible boards available
+      // reset the bin selector
+      binSelector.disabled = false
+      binSelector.removeEventListener("change", changeBin);
+      binSelector.addEventListener("change", async evt => {
+          // upon compatible board selection, reveal next step
+          if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
+              logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
+              await nextStepCallback()
+          }
+      });
+
+      // explain all this to the user
+      errorMsg(`Oops, wrong board!\n` +
+        `- you selected: <strong>${boardName}</strong>\n` +
+        `- you connected: <strong>${chipName}</strong>\n` +
+        `You can:\n` +
+        `- go back to Step 1 and select a compatible board\n` +
+        `- connect a different board and refresh the browser`)
+
+      // reveal step one
+      showStepOne()
+      return
+    }
+
+    // no compatible boards available
+    // explain to the user with a link to the appropriate guide
+    errorMsg(`Oops! This tool doesn't support your board, <strong>${chipName}</strong>, but WipperSnapper still might!\n` +
+      `Visit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`, QUICK_START_LINK)
+    // can't use it so disconnect now
+    await disconnect()
+}
+
+function checkChipTypeMatchesSelectedBoard(chipType, boardId=null) {
+    // allow overriding which board we're checking against
+    boardId = boardId || binSelector.value
+    // wrap the lookup
+    return (BOARD_TO_CHIP_MAP[boardId] == chipType)
+}
+
+async function setBaudRateIfChipSupports(chipType) {
+    const baud = parseInt(baudRate.value);
+    if (baud == ESP_ROM_BAUD) { return } // already the default
+
+    if (chipType == ESP32) { // only supports the default
+        logMsg("WARNING: ESP32 is having issues working at speeds faster than 115200. Continuing at 115200 for now...");
+        return
+    }
+
+    await changeBaudRate(baud);
 }
 
 /**
@@ -635,8 +753,8 @@ async function mergeSettings() {
 
     // merge with the defaults and send back
     return {
-      ...BASE_SETTINGS,
-      ...transformedSettings
+        ...BASE_SETTINGS,
+        ...transformedSettings
     }
 }
 
@@ -650,8 +768,11 @@ async function programScript(stages) {
         return
     }
 
+    // pretty print the settings object with VERSION placeholders filled
     const settings = await mergeSettings()
-    logMsg(`Flashing with settings: ${JSON.stringify(settings, null, 2)}`)
+    const settingsString = JSON.stringify(settings, null, 2)
+    const strippedSettings = settingsString.replaceAll('VERSION', semver)
+    logMsg(`Flashing with settings: <pre>${strippedSettings}</pre>`)
 
     let steps = [];
     for (let i = 0; i < stages.length; i++) {
@@ -867,7 +988,7 @@ async function getFirmware(filename) {
       throw new Error(msg)
     }
 
-    logMsg(`Unzipping ${filename}...`)
+    logMsg(`Unzipping ${filename.replace('VERSION', semver)}...`)
     const firmwareFile = await file.getData(new zip.Uint8ArrayWriter())
 
     return firmwareFile.buffer // ESPTool wants an ArrayBuffer
