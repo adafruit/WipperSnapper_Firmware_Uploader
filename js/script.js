@@ -146,8 +146,13 @@ document.addEventListener("DOMContentLoaded", () => {
     darkMode.addEventListener("click", clickDarkMode);
 
     // handle runaway errors
-    window.addEventListener("error", function (event) {
-        console.log("Got an uncaught error: ", event.error);
+    window.addEventListener("error", event => {
+        console.warn(`Uncaught error: ${event.error}`);
+    });
+
+    // handle runaway rejections
+    window.addEventListener("unhandledrejection", event => {
+        console.warn(`Unhandled rejection: ${event.reason}`);
     });
 
     // WebSerial feature detection
