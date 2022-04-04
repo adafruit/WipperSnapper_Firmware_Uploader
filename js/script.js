@@ -61,9 +61,20 @@ let currentBoard;
 let buttonState = 0;
 let showConsole = false;
 
+// querystring options
+const QUERYSTRING_BOARD_KEY = 'board'
+const QUERYSTRING_DEBUG_KEY = 'debug'
+
+function getFromQuerystring(key) {
+    const location = new URL(document.location)
+    const params = new URLSearchParams(location.search)
+    return params.get(key)
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
     // detect debug setting from querystring
-    let debug = false;
+    let debug = getFromQuerystring(QUERYSTRING_DEBUG_KEY);
     var getArgs = {};
     location.search
         .substr(1)
@@ -209,16 +220,8 @@ async function initBinSelector() {
     // show next step upon selection
 }
 
-// check the querystring for a default board
-const QUERYSTRING_BOARD_KEY = 'board'
-function getBoardFromQuerystring() {
-    const location = new URL(document.location)
-    const params = new URLSearchParams(location.search)
-    return params.get(QUERYSTRING_BOARD_KEY)
-}
-
 function setDefaultBoard() {
-    const board = getBoardFromQuerystring()
+    const board = getFromQuerystring(QUERYSTRING_BOARD_KEY)
     if(board && hasBoard(board)) {
       binSelector.value = board
       showStep(2, false)
