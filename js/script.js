@@ -74,9 +74,20 @@ let currentBoard;
 let buttonState = 0;
 let showConsole = false;
 
+// querystring options
+const QUERYSTRING_BOARD_KEY = 'board'
+const QUERYSTRING_DEBUG_KEY = 'debug'
+
+function getFromQuerystring(key) {
+    const location = new URL(document.location)
+    const params = new URLSearchParams(location.search)
+    return params.get(key)
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
     // detect debug setting from querystring
-    let debug = false;
+    let debug = getFromQuerystring(QUERYSTRING_DEBUG_KEY);
     var getArgs = {};
     location.search
         .substr(1)
@@ -135,8 +146,13 @@ document.addEventListener("DOMContentLoaded", () => {
     darkMode.addEventListener("click", clickDarkMode);
 
     // handle runaway errors
-    window.addEventListener("error", function (event) {
-        console.log("Got an uncaught error: ", event.error);
+    window.addEventListener("error", event => {
+        console.warn(`Uncaught error: ${event.error}`);
+    });
+
+    // handle runaway rejections
+    window.addEventListener("unhandledrejection", event => {
+        console.warn(`Unhandled rejection: ${event.reason}`);
     });
 
     // WebSerial feature detection
@@ -164,7 +180,10 @@ async function connect() {
     logMsg("Connecting...");
     await espTool.connect();
     readLoop().catch((error) => {
+        // Disconnection before complete
         toggleUIConnected(false);
+        showStep(2, { hideHigherSteps: true })
+        errorMsg("Oops, we lost connection to your board before completing the install. Please check your USB connection and click Connect again. Refresh the browser if it becomes unresponsive.")
     });
 }
 
@@ -237,9 +256,9 @@ function populateBinSelector(title, filter=() => true) {
     return any
 }
 
-function showStepOne() {
-    doThingOnClass("remove", "hidden", "step-1")
-    doThingOnClass("remove", "dimmed", "step-1")
+function returnToStepOne() {
+    showStep(1, { hideHigherSteps: false });
+    doThingOnClass("add", "dimmed", "step-2")
     // yellow fade like 2005
     setTimeout(() => doThingOnClass("add", "highlight", "step-1"), 0)
     setTimeout(() => doThingOnClass("remove", "highlight", "step-1"), 1500)
@@ -258,19 +277,11 @@ function doThingOnClass(method, thing, classSelector) {
     }
 }
 
-// check the querystring for a default board
-const QUERYSTRING_BOARD_KEY = 'board'
-function getBoardFromQuerystring() {
-    const location = new URL(document.location)
-    const params = new URLSearchParams(location.search)
-    return params.get(QUERYSTRING_BOARD_KEY)
-}
-
 function setDefaultBoard() {
-    const board = getBoardFromQuerystring()
+    const board = getFromQuerystring(QUERYSTRING_BOARD_KEY)
     if(board && hasBoard(board)) {
         binSelector.value = board
-        showStep(2, false)
+        showStep(2, { dimLowerSteps: false })
         return true
     }
 }
@@ -287,15 +298,34 @@ function changeBin(evt) {
         hideStep(2)
 }
 
-function showStep(stepNumber, hideLowerSteps=true) {
+function showStep(stepNumber, options={}) {
+    const dimLowerSteps = !(options.dimLowerSteps === false)
+    const hideHigherSteps = !(options.hideHigherSteps === false)
     // reveal the new step
     doThingOnClass("remove", "hidden", `step-${stepNumber}`)
+    doThingOnClass("remove", "dimmed", `step-${stepNumber}`)
 
-    if(hideLowerSteps) {
-        // dim all prior steps
+    if(dimLowerSteps) {
         for (let step = stepNumber - 1; step > 0; step--) {
             doThingOnClass("add", "dimmed", `step-${step}`)
         }
+    }
+
+    if(hideHigherSteps) {
+      for (let step = stepNumber + 1; step <= 6; step++) {
+          doThingOnClass("add", "hidden", `step-${step}`)
+      }
+    }
+
+    // per-step things, like a state machine
+    switch(stepNumber) {
+        case 3:
+            checkProgrammable()
+            break;
+        case 4:
+            butProgram.disabled = false
+            butProgramNvm.disabled = false
+            break;
     }
 
     // scroll to the bottom next frame
@@ -593,7 +623,7 @@ async function clickConnect() {
         `- connect a different board and refresh the browser`)
 
       // reveal step one
-      showStepOne()
+      returnToStepOne()
       return
     }
 
@@ -887,7 +917,7 @@ async function checkProgrammable() {
     if(getValidFields().length < 4) {
       hideStep(4)
     } else {
-      showStep(4, false)
+      showStep(4, { dimLowerSteps: false })
     }
 }
 
