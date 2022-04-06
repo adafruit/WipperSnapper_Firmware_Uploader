@@ -3,7 +3,7 @@
 /* global ESP_ROM_BAUD, port, reader, inputBuffer, generate */
 'use strict';
 import * as esptoolPackage from "https://unpkg.com/esp-web-flasher@5.1.1/dist/web/index.js?module"
-import {LittleFS, Config} from 'https://cdn.jsdelivr.net/gh/adafruit/littlefs-pure-js@1.0.0/littlefs.js';
+import {LittleFS, LfsConfig, LfsFile} from 'https://cdn.jsdelivr.net/gh/adafruit/littlefs-pure-js@1.0.1/littlefs.js';
 
 const FIRMWARE_API = "//io.adafruit.com"
 const QUICK_START_LINK = "https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper/installing-wippersnapper"
@@ -1023,7 +1023,7 @@ async function generate(params) {
   */
 
   let binaryOutput = {data: new Uint8Array(params.fileSystemSize).fill(0xFF)};
-  let cfg = new Config({
+  let cfg = new LfsConfig({
     blockSize: params.blockSize,
     blockCount: params.fileSystemSize / params.blockSize,
     flash: binaryOutput})
@@ -1069,7 +1069,7 @@ async function generate(params) {
     // Get contents
     let filePath = "/" + fileObj.filename;
     let fileContents = await contentFunc(params.rootFolder + filePath);
-    let file = new File();
+    let file = new LfsFile();
     var err = littlefs.fileOpen(file, filePath, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
     if (err != 0) {
         console.error("error opening file: " + err);
