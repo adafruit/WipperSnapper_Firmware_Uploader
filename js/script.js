@@ -24,28 +24,12 @@ const baudRates = [
   921600,
 ];
 
-const flashSizes = {
-    "512KB": 0x00,
-    "256KB": 0x10,
-    "1MB": 0x20,
-    "2MB": 0x30,
-    "4MB": 0x40,
-    "2MB-c1": 0x50,
-    "4MB-c1": 0x60,
-    "8MB": 0x80,
-    "16MB": 0x90,
-};
-
 const stage_erase_all = 0x01;
 const stage_flash_structure = 0x02;
 const stage_flash_nvm = 0x03;
 
 const full_program = [stage_erase_all, stage_flash_structure, stage_flash_nvm];
 const nvm_only_program = [stage_flash_nvm];
-
-const bufferSize = 512;
-const colors = ["#00a7e9", "#f89521", "#be1e2d"];
-const measurementPeriodId = "0001";
 
 const maxLogLength = 100;
 const log = document.getElementById("log");
@@ -68,11 +52,6 @@ const stepname = document.getElementById("stepname");
 const appDiv = document.getElementById("app");
 const disableWhileBusy = [partitionData, butProgram, butProgramNvm, baudRate];
 
-let colorIndex = 0;
-let activePanels = [];
-let bytesReceived = 0;
-let currentBoard;
-let buttonState = 0;
 let showConsole = false;
 
 // querystring options
@@ -111,7 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
             // Default Help Message:
             // if we've failed to catch the message before now, we need to give
             // the generic advice: reconnect, refresh, go to support
-          throw(e);
             errorMsg(
                 `Connection Error, your board may be incompatible. Things to try:\n` +
                 `1. Reset your board and try again.\n` +
@@ -499,8 +477,6 @@ function enableStyleSheet(node, enabled) {
  * Reset the Panels, Log, and associated data
  */
 async function reset() {
-    bytesReceived = 0;
-
     // Clear the log
     log.innerHTML = "";
 }
@@ -597,8 +573,7 @@ async function clickConnect() {
         // Disconnection before complete
         toggleUIConnected(false);
         showStep(2, { hideHigherSteps: true })
-        //errorMsg("Oops, we lost connection to your board before completing the install. Please check your USB connection and click Connect again. Refresh the browser if it becomes unresponsive.")
-        throw err;
+        errorMsg("Oops, we lost connection to your board before completing the install. Please check your USB connection and click Connect again. Refresh the browser if it becomes unresponsive.")
     }
 }
 
@@ -946,15 +921,6 @@ async function clickClear() {
     reset();
 }
 
-function convertJSON(chunk) {
-    try {
-        let jsonObj = JSON.parse(chunk);
-        return jsonObj;
-    } catch (e) {
-        return chunk;
-    }
-}
-
 function toggleUIToolbar(show) {
     for (let i = 0; i < 4; i++) {
         progress.classList.add("hidden");
@@ -996,10 +962,6 @@ function loadSetting(setting, defaultValue) {
 
 function saveSetting(setting, value) {
     window.localStorage.setItem(setting, JSON.stringify(value));
-}
-
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getFirmware(filename) {
