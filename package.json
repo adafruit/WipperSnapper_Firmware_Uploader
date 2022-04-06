@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "snowpack": "^3.8.8"
+  },
+  "dependencies": {
+    "@adafruit/littlefs-pure-js": "^1.0.0"
+  }
+}
