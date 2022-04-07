@@ -490,15 +490,13 @@ async function clickConnect() {
 
     butConnect.textContent = "Connecting...";
     butConnect.disabled = true
-  
-    const esploaderMod = await esptoolPackage;
 
-    const esploader = await esploaderMod.connect({
+    const esploader = await esptoolPackage.connect({
         log: (...args) => logMsg(...args),
         debug: debug ? (...args) => debugMsg(...args) : (...args) => {},
         error: (...args) => errorMsg(...args),
     });
-  
+
     try {
         await esploader.initialize();
 
@@ -566,7 +564,7 @@ async function clickConnect() {
           `Visit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`, QUICK_START_LINK)
         // can't use it so disconnect now
         await disconnect()
-      
+
     } catch (err) {
         await esploader.disconnect();
         // Disconnection before complete
