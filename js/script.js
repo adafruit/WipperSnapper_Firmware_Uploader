@@ -1,6 +1,6 @@
 // Note: the code will still work without this line, but without it you
 // will see an error in the editor
-/* global ESP_ROM_BAUD, port, reader, inputBuffer, generate */
+/* global reader */
 'use strict';
 
 import * as esptoolPackage from "https://unpkg.com/esp-web-flasher@5.1.1/dist/web/index.js?module"
