@@ -490,8 +490,10 @@ async function clickConnect() {
 
     butConnect.textContent = "Connecting...";
     butConnect.disabled = true
+  
+    const esploaderMod = await esptoolPackage;
 
-    const esploader = await esptoolPackage.connect({
+    const esploader = await esploaderMod.connect({
         log: (...args) => logMsg(...args),
         debug: debug ? (...args) => debugMsg(...args) : (...args) => {},
         error: (...args) => errorMsg(...args),
