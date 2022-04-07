@@ -767,8 +767,9 @@ async function programScript(stages) {
                         lastPercent = 0;
                         await espStub.flashData(
                             firmware,
-                            (bytesWritten) => {
-                                let percentage = Math.floor(bytesWritten / firmware.byteLength) * 100
+                            (bytesWritten, totalBytes
+                            ) => {
+                                let percentage = Math.floor(bytesWritten / totalBytes) * 100
                                 if (percentage != lastPercent) {
                                     logMsg(percentage + "%...");
                                     lastPercent = percentage;
@@ -807,8 +808,8 @@ async function programScript(stages) {
                           lastPercent = 0;
                           await espStub.flashData(
                             contents,
-                            (bytesWritten) => {
-                                let percentage = Math.floor(bytesWritten / contents.byteLength) * 100
+                            (bytesWritten, totalBytes) => {
+                                let percentage = Math.floor(bytesWritten / totalBytes) * 100
                                 if (percentage != lastPercent) {
                                     logMsg(percentage + "%...");
                                     lastPercent = percentage;
