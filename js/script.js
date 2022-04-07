@@ -2,8 +2,9 @@
 // will see an error in the editor
 /* global ESP_ROM_BAUD, port, reader, inputBuffer, generate */
 'use strict';
+
 import * as esptoolPackage from "https://unpkg.com/esp-web-flasher@5.1.1/dist/web/index.js?module"
-import {LittleFS, LfsConfig, LfsFile} from 'https://cdn.jsdelivr.net/gh/adafruit/littlefs-pure-js@1.0.1/littlefs.js';
+import {LittleFS, LfsConfig, LfsFile, LFS_O_WRONLY, LFS_O_CREAT, LFS_O_TRUNC} from 'https://cdn.jsdelivr.net/gh/adafruit/littlefs-pure-js@1.0.2/littlefs.js';
 
 const FIRMWARE_API = "//io.adafruit.com"
 const QUICK_START_LINK = "https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper/installing-wippersnapper"
@@ -53,6 +54,7 @@ const appDiv = document.getElementById("app");
 const disableWhileBusy = [partitionData, butProgram, butProgramNvm, baudRate];
 
 let showConsole = false;
+let debug;
 
 // querystring options
 const QUERYSTRING_BOARD_KEY = 'board'
@@ -66,7 +68,7 @@ function getFromQuerystring(key) {
 
 document.addEventListener("DOMContentLoaded", () => {
     // detect debug setting from querystring
-    let debug = getFromQuerystring(QUERYSTRING_DEBUG_KEY);
+    debug = getFromQuerystring(QUERYSTRING_DEBUG_KEY);
     var getArgs = {};
     location.search
         .substr(1)
@@ -95,8 +97,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 `1. Reset your board and try again.\n` +
                 `  - Look for a little black button near the power port.\n` +
                 `2. Refresh your browser and try again.\n` +
-                `3. Double-check your board type and serial port selection.\n` +
-                `4. Post on the Support Forum (link above) with this info:\n\n` +
+                `3. Make sure you are not connected in another browser tab.\n` +
+                `4. Double-check your board type and serial port selection.\n` +
+                `5. Post on the Support Forum (link above) with this info:\n\n` +
                 `"Firmware Tool: ${e}"\n`
             );
             if (espStub) {
@@ -124,7 +127,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // handle runaway rejections
     window.addEventListener("unhandledrejection", event => {
-        console.error(event)
         console.warn(`Unhandled rejection: ${event.reason}`);
     });
 
@@ -490,13 +492,12 @@ async function clickConnect() {
 
     butConnect.textContent = "Connecting...";
     butConnect.disabled = true
-    logMsg("Connecting...");
   
     const esploaderMod = await esptoolPackage;
 
     const esploader = await esploaderMod.connect({
         log: (...args) => logMsg(...args),
-        debug: (...args) => debugMsg(...args),
+        debug: debug ? (...args) => debugMsg(...args) : (...args) => {},
         error: (...args) => errorMsg(...args),
     });
   
@@ -801,20 +802,22 @@ async function programScript(stages) {
                         link.click();
                         link.remove();
                     } else {
-                        const contents = new Uint8Array(fileSystemImage).buffer;
-                        lastPercent = 0;
-                        await espStub.flashData(
-                          contents,
-                          (bytesWritten) => {
-                              let percentage = Math.floor(bytesWritten / contents.byteLength) * 100
-                              if (percentage != lastPercent) {
-                                  logMsg(percentage + "%...");
-                                  lastPercent = percentage;
-                              }
-                              progressBar.style.width = percentage + "%";
-                          },
-                          params.flashParams.offset,
-                          0);
+                        if (fileSystemImage) {
+                          const contents = new Uint8Array(fileSystemImage).buffer;
+                          lastPercent = 0;
+                          await espStub.flashData(
+                            contents,
+                            (bytesWritten) => {
+                                let percentage = Math.floor(bytesWritten / contents.byteLength) * 100
+                                if (percentage != lastPercent) {
+                                    logMsg(percentage + "%...");
+                                    lastPercent = percentage;
+                                }
+                                progressBar.style.width = percentage + "%";
+                            },
+                            params.flashParams.offset,
+                            0);
+                        }
                     }
                 },
                 params: {
@@ -1005,7 +1008,7 @@ async function generate(params) {
   // Add files here
   littlefs.mkdir("/");
   // Add time metadata 't'
-  let ftime = parseInt(Date.now()/1000);
+  let ftime = parseInt(Date.now() / 1000);
   var err = littlefs.setattr("/", 't', ftime, struct.calcsize("I"));
   if (err != 0) {
       console.error("error setting folder attribute: " + err);
