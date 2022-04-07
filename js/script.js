@@ -102,9 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 `5. Post on the Support Forum (link above) with this info:\n\n` +
                 `"Firmware Tool: ${e}"\n`
             );
-            if (espStub) {
-              await espStub.disconnect();
-            }
+            await disconnect();
             toggleUIConnected(false);
         });
     });
@@ -492,10 +490,8 @@ async function clickConnect() {
 
     butConnect.textContent = "Connecting...";
     butConnect.disabled = true
-  
-    const esploaderMod = await esptoolPackage;
 
-    const esploader = await esploaderMod.connect({
+    const esploader = await esptoolPackage.connect({
         log: (...args) => logMsg(...args),
         debug: debug ? (...args) => debugMsg(...args) : (...args) => {},
         error: (...args) => errorMsg(...args),
