@@ -4,7 +4,7 @@
 'use strict';
 
 import * as esptoolPackage from "https://unpkg.com/esp-web-flasher@5.1.2/dist/web/index.js?module"
-import {LittleFS, LfsConfig, LfsFile, LFS_O_WRONLY, LFS_O_CREAT, LFS_O_TRUNC} from 'https://cdn.jsdelivr.net/gh/adafruit/littlefs-pure-js@1.0.2/littlefs.js';
+import {LittleFS, LfsConfig, LfsFile, LFS_O_WRONLY, LFS_O_CREAT, LFS_O_TRUNC} from 'https://cdn.jsdelivr.net/gh/adafruit/littlefs-pure-js@1.0.3/littlefs.js';
 
 const FIRMWARE_API = "//io.adafruit.com"
 const QUICK_START_LINK = "https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper/installing-wippersnapper"
