@@ -767,9 +767,9 @@ async function programScript(stages) {
                             firmware,
                             (bytesWritten, totalBytes
                             ) => {
-                                let percentage = Math.floor(bytesWritten / totalBytes) * 100
+                                let percentage = Math.floor((bytesWritten / totalBytes) * 100)
                                 if (percentage != lastPercent) {
-                                    logMsg(percentage + "%...");
+                                    logMsg(`${percentage}% (${bytesWritten}/${totalBytes})...`);
                                     lastPercent = percentage;
                                 }
                                 progressBar.style.width = percentage + "%";
@@ -801,22 +801,21 @@ async function programScript(stages) {
                         link.click();
                         link.remove();
                     } else {
-                        if (fileSystemImage) {
-                          const contents = new Uint8Array(fileSystemImage).buffer;
-                          lastPercent = 0;
-                          await espStub.flashData(
-                            contents,
+                        const progressBar = progress.querySelector("div");
+                        lastPercent = 0;
+                        await espStub.flashData(
+                            new Uint8Array(fileSystemImage).buffer,
                             (bytesWritten, totalBytes) => {
-                                let percentage = Math.floor(bytesWritten / totalBytes) * 100
+                                let percentage = Math.floor((bytesWritten / totalBytes) * 100)
                                 if (percentage != lastPercent) {
-                                    logMsg(percentage + "%...");
+                                    logMsg(`${percentage}% (${bytesWritten}/${totalBytes})...`);
                                     lastPercent = percentage;
                                 }
                                 progressBar.style.width = percentage + "%";
                             },
                             params.flashParams.offset,
-                            0);
-                        }
+                            0
+                        );
                     }
                 },
                 params: {
