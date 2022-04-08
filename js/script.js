@@ -29,6 +29,8 @@ const stage_erase_all = 0x01;
 const stage_flash_structure = 0x02;
 const stage_flash_nvm = 0x03;
 
+const UNSIGNED_INT_SIZE = 4
+
 const full_program = [stage_erase_all, stage_flash_structure, stage_flash_nvm];
 const nvm_only_program = [stage_flash_nvm];
 
@@ -1006,13 +1008,13 @@ async function generate(params) {
   littlefs.mkdir("/");
   // Add time metadata 't'
   let ftime = parseInt(Date.now() / 1000);
-  var err = littlefs.setattr("/", 't', ftime, struct.calcsize("I"));
+  var err = littlefs.setattr("/", 't', ftime, UNSIGNED_INT_SIZE);
   if (err != 0) {
       console.error("error setting folder attribute: " + err);
       return err
   }
 
-  var err = littlefs.setattr("/", 'c', ftime, struct.calcsize("I"));
+  var err = littlefs.setattr("/", 'c', ftime, UNSIGNED_INT_SIZE);
   if (err != 0) {
       console.error("error setting folder attribute: " + err);
       return err
@@ -1053,26 +1055,26 @@ async function generate(params) {
     }
 
     // Set file attributes for creation and modify time
-    var err = littlefs.setattr(filePath, 't', ftime, struct.calcsize("I"));
+    var err = littlefs.setattr(filePath, 't', ftime, UNSIGNED_INT_SIZE);
     if (err != 0) {
         console.error("error setting file attribute: " + err);
         return err
     }
 
-    var err = littlefs.setattr(filePath, 'c', ftime, struct.calcsize("I"));
+    var err = littlefs.setattr(filePath, 'c', ftime, UNSIGNED_INT_SIZE);
     if (err != 0) {
         console.error("error setting file attribute: " + err);
         return err
     }
   }
 
-  var err = littlefs.setattr("/", 't', [ftime, 0], struct.calcsize("II"));
+  var err = littlefs.setattr("/", 't', [ftime, 0], UNSIGNED_INT_SIZE * 2);
   if (err != 0) {
       console.error("error setting folder attribute: " + err);
       return err
   }
 
-  var err = littlefs.setattr("/", 'c', [ftime, 0], struct.calcsize("II"));
+  var err = littlefs.setattr("/", 'c', [ftime, 0], UNSIGNED_INT_SIZE * 2);
   if (err != 0) {
       console.error("error setting folder attribute: " + err);
       return err
