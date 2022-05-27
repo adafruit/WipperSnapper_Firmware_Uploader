@@ -13,7 +13,8 @@ const DO_DOWNLOAD = false
 const BOARD_TO_CHIP_MAP = {
   'feather-esp8266': esptoolPackage.CHIP_FAMILY_ESP8266,
   'feather-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
-  'feather-esp32-v2-daily': esptoolPackage.CHIP_FAMILY_ESP32
+  'feather-esp32-v2': esptoolPackage.CHIP_FAMILY_ESP32,
+  'qtpy-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
 }
 
 let espStub;
@@ -154,17 +155,17 @@ function createOption(value, text) {
 
 /* Firmware metadata example:
 {
-  id: "feather_esp32_v2_daily"
+  id: "feather_esp32_v2"
   name: "Adafruit Feather ESP32 V2"
   settings: {
     blockSize: 4096
     fileSystemSize: 94208
     offset: "0x290000"
     structure: {
-      "0xe000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.boot_app0.bin',
-      "0x1000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.bootloader.bin',
-      "0x10000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.bin',
-      "0x8000": 'wippersnapper.feather_esp32_v2_daily.littlefs.VERSION.partitions.bin'
+      "0xe000": 'wippersnapper.feather_esp32_v2.littlefs.VERSION.boot_app0.bin',
+      "0x1000": 'wippersnapper.feather_esp32_v2.littlefs.VERSION.bootloader.bin',
+      "0x10000": 'wippersnapper.feather_esp32_v2.littlefs.VERSION.bin',
+      "0x8000": 'wippersnapper.feather_esp32_v2.littlefs.VERSION.partitions.bin'
     }
   }
 }
