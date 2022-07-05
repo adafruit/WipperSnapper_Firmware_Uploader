@@ -15,6 +15,7 @@ const BOARD_TO_CHIP_MAP = {
   'feather-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
   'feather-esp32-v2': esptoolPackage.CHIP_FAMILY_ESP32,
   'qtpy-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
+  'qtpy-esp32c3': esptoolPackage.CHIP_FAMILY_ESP32C3
 }
 
 let espStub;
