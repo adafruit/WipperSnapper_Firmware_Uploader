@@ -61,6 +61,7 @@ let debug;
 // querystring options
 const QUERYSTRING_BOARD_KEY = 'board'
 const QUERYSTRING_DEBUG_KEY = 'debug'
+const QUERYSTRING_STAGING_KEY = 'staging'
 
 function getFromQuerystring(key) {
     const location = new URL(document.location)
@@ -642,6 +643,10 @@ async function clickProgramNvm() {
     await programScript(nvm_only_program);
 }
 
+function stagingFlagSet() {
+    return getFromQuerystring(QUERYSTRING_STAGING_KEY)
+}
+
 async function populateSecretsFile(path) {
     let response = await fetch(path);
     let contents = await response.json();
@@ -649,6 +654,11 @@ async function populateSecretsFile(path) {
     // Get the secrets data
     for (let field of getValidFields()) {
         updateObject(contents, partitionData[field].id, partitionData[field].value);
+    }
+
+    // add "io_url" property to json root with the staging url override
+    if(stagingFlagSet()) {
+        updateObject(contents, 'io_url', 'io.adafruit.us')
     }
     // Convert the data to text and return
     return JSON.stringify(contents, null, 4);
