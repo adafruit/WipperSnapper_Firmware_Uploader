@@ -878,13 +878,12 @@ async function programScript(stages) {
 }
 
 function getValidFields() {
-    // Get a list of file and offsets
-    // This will be used to check if we have valid stuff
-    // and will also return a list of files to program
-    let validFields = [];
+    // Validate user inputs
+    const validFields = [];
     for (let i = 0; i < 4; i++) {
-        //let pd = parseInt(partitionData[i].value, 16);
-        if (partitionData[i].value.length > 0) {
+        const { id, value } = partitionData[i]
+        // password can be blank, the rest must have some value
+        if (id === "network_type_wifi.network_password" || value.length > 0) {
             validFields.push(i);
         }
     }
