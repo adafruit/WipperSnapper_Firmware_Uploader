@@ -655,7 +655,12 @@ async function populateSecretsFile(path) {
 
     // Get the secrets data
     for (let field of getValidFields()) {
-        updateObject(contents, partitionData[field].id, partitionData[field].value);
+        const { id, value } = partitionData[field]
+        if(id === "status_pixel_brightness") {
+            updateObject(contents, id, parseFloat(value) || 0.2);
+        } else {
+            updateObject(contents, id, value);
+        }
     }
 
     // add "io_url" property to json root with the staging url override
@@ -880,10 +885,12 @@ async function programScript(stages) {
 function getValidFields() {
     // Validate user inputs
     const validFields = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         const { id, value } = partitionData[i]
         // password can be blank, the rest must have some value
-        if (id === "network_type_wifi.network_password" || value.length > 0) {
+        if (id === "network_type_wifi.network_password" ||
+            id === "status_pixel_brightness" ||
+            value.length > 0) {
             validFields.push(i);
         }
     }
@@ -895,7 +902,7 @@ function getValidFields() {
  * Check if the conditions to program the device are sufficient
  */
 async function checkProgrammable() {
-    if (getValidFields().length < 4) {
+    if (getValidFields().length < 5) {
       hideStep(4)
     } else {
       showStep(4, { dimLowerSteps: false })

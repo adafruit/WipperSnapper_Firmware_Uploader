@@ -108,7 +108,7 @@
           </li>
 
           <li class="step-3 hidden">
-            <p>Enter the credentials for the wifi network your board will connect to, as well as your Adafruit IO Username and IO Key</p>
+            <p>Enter the credentials for the wifi network your board will connect to, as well as your Adafruit IO Username and IO Key. You may optionally set the brightness of the LEDs WipperSnapper uses for status indicators between 0.0 and 1.0 (for example, 0.5 would be "50 percent brightness".)</p>
 
             <ul>
               <li><p><em><strong>NOTE:</strong> Your wifi network must be using 2.4Ghz frequency.</em></p></li>
@@ -116,12 +116,12 @@
 
             <div id="commands">
               <div class="field">
-                <label><span>SSID:</span>
+                <label><span>WiFi Network Name (SSID):</span>
                   <input id="network_type_wifi.network_ssid" class="partition-data" type="text" placeholder="WiFi SSID" value="" />
                 </label>
               </div>
               <div class="field">
-                <label><span>Password:</span>
+                <label><span>WiFi Password:</span>
                   <input id="network_type_wifi.network_password" class="partition-data" type="text" placeholder="WiFi Password" value=""  />
                 </label>
               </div>
@@ -133,6 +133,11 @@
               <div class="field">
                 <label><span>Adafruit IO Key:</span>
                   <input id="io_key" class="partition-data" type="text" placeholder="AIO Key" value="" />
+                </label>
+              </div>
+              <div class="field">
+                <label><span>Status LED Brightness:</span>
+                  <input id="status_pixel_brightness" class="partition-data" type="number" min="0.0" max="1.0" step="0.05" placeholder="0.2"/>
                 </label>
               </div>
             </div>
