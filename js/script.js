@@ -658,7 +658,7 @@ async function populateSecretsFile(path) {
         const { id, value } = partitionData[field]
         if(id === "status_pixel_brightness") {
             const floatValue = parseFloat(value)
-            updateObject(contents, id,  isNaN(floatValue) ? 0.2 : floatValue);
+            updateObject(contents, id, isNaN(floatValue) ? 0.2 : floatValue);
         } else {
             updateObject(contents, id, value);
         }
@@ -888,7 +888,7 @@ function getValidFields() {
     const validFields = [];
     for (let i = 0; i < 5; i++) {
         const { id, value } = partitionData[i]
-        // password can be blank, the rest must have some value
+        // password & brightness can be blank, the rest must have some value
         if (id === "network_type_wifi.network_password" ||
             id === "status_pixel_brightness" ||
             value.length > 0) {
