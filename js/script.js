@@ -658,7 +658,7 @@ async function populateSecretsFile(path) {
         const { id, value } = partitionData[field]
         if(id === "status_pixel_brightness") {
             const floatValue = parseFloat(value)
-            updateObject(contents, id,  floatValue === NaN ? 0.2 : floatValue);
+            updateObject(contents, id,  isNaN(floatValue) ? 0.2 : floatValue);
         } else {
             updateObject(contents, id, value);
         }
