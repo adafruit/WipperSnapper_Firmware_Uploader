@@ -655,7 +655,13 @@ async function populateSecretsFile(path) {
 
     // Get the secrets data
     for (let field of getValidFields()) {
-        updateObject(contents, partitionData[field].id, partitionData[field].value);
+        const { id, value } = partitionData[field]
+        if(id === "status_pixel_brightness") {
+            const floatValue = parseFloat(value)
+            updateObject(contents, id, isNaN(floatValue) ? 0.2 : floatValue);
+        } else {
+            updateObject(contents, id, value);
+        }
     }
 
     // add "io_url" property to json root with the staging url override
@@ -878,13 +884,14 @@ async function programScript(stages) {
 }
 
 function getValidFields() {
-    // Get a list of file and offsets
-    // This will be used to check if we have valid stuff
-    // and will also return a list of files to program
-    let validFields = [];
-    for (let i = 0; i < 4; i++) {
-        //let pd = parseInt(partitionData[i].value, 16);
-        if (partitionData[i].value.length > 0) {
+    // Validate user inputs
+    const validFields = [];
+    for (let i = 0; i < 5; i++) {
+        const { id, value } = partitionData[i]
+        // password & brightness can be blank, the rest must have some value
+        if (id === "network_type_wifi.network_password" ||
+            id === "status_pixel_brightness" ||
+            value.length > 0) {
             validFields.push(i);
         }
     }
@@ -896,7 +903,7 @@ function getValidFields() {
  * Check if the conditions to program the device are sufficient
  */
 async function checkProgrammable() {
-    if (getValidFields().length < 4) {
+    if (getValidFields().length < 5) {
       hideStep(4)
     } else {
       showStep(4, { dimLowerSteps: false })
