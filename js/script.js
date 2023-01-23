@@ -26,6 +26,7 @@ const baudRates = [
   460800,
   921600,
 ];
+const DEFAULT_BAUD_RATE = baudRates[0];
 
 const stage_erase_all = 0x01;
 const stage_flash_structure = 0x02;
@@ -588,9 +589,10 @@ function checkChipTypeMatchesSelectedBoard(chipType, boardId=null) {
 
 async function setBaudRateIfChipSupports(chipType) {
     const baud = parseInt(baudRate.value);
-    if (baud == espStub.ESP_ROM_BAUD) { return } // already the default
 
-    if (chipType == espStub.ESP32) { // only supports the default
+    if (baud == DEFAULT_BAUD_RATE) { return } // already the default
+
+    if (chipType == esptoolPackage.CHIP_FAMILY_ESP32) { // only supports the default
         logMsg("WARNING: ESP32 is having issues working at speeds faster than 115200. Continuing at 115200 for now...");
         return
     }
@@ -970,7 +972,7 @@ function toggleUIConnected(connected) {
 function loadAllSettings() {
     // Load all saved settings or defaults
     autoscroll.checked = loadSetting("autoscroll", true);
-    baudRate.value = loadSetting("baudrate", baudRates[0]);
+    baudRate.value = loadSetting("baudrate", DEFAULT_BAUD_RATE);
     darkMode.checked = loadSetting("darkmode", false);
     showConsole = loadSetting('showConsole', false);
     toggleConsole(showConsole);
