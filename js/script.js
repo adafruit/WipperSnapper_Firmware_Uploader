@@ -572,6 +572,7 @@ async function clickConnect() {
         await disconnect()
 
     } catch (err) {
+        console.error(err)
         await esploader.disconnect();
         // Disconnection before complete
         toggleUIConnected(false);
