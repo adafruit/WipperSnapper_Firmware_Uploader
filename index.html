@@ -101,9 +101,22 @@
             <p>
               If you aren't sure which to choose, look for words like "USB", "UART", and "Bridge Controller". There may be more than one right option depending on your system configuration. Experiment if needed.
             </p>
+
+            <p>
+              Alternatively, you can continue offline to generate a binary file that can be flashed later.
+            </p>
+            <p>
+              <button id="butOffline" type="button">
+                Generate Binary File
+              </button>
+              Click this button to generate a board image to be flashed later.
+            </p>
+            <p>
+                <strong>NOTE:</strong> You network credentials will be encoded in the binary file. We suggest you do not distribute the file. If you are concerned about security, you may want to use the Web Serial method.
+            </p>
           </li>
 
-          <li class="step-3 hidden">
+          <li class="step-3 hidden online">
             <p><strong>Do not disconnect your board from your computer from here on!</strong></p>
           </li>
 
@@ -143,11 +156,18 @@
             </div>
           </li>
 
-          <li class="step-4 hidden">
+          <li class="step-4 hidden online">
             <p>Click "Install WipperSnapper" to get the process started. If you've already installed the WipperSnapper firmware and simply need to update your credentials, click "Update Credentials ONLY".</p>
             <div class="buttons" style="text-align: center;">
                <button id="butProgram" type="button">Install WipperSnapper</button>
                <button id="butProgramNvm" type="button">Update Credentials ONLY</button>
+             </div>
+          </li>
+
+          <li class="step-4 hidden offline">
+            <p>Click "Generate Binary Image" to create an image. After the image is generated, it will automatically download.</p>
+            <div class="buttons" style="text-align: center;">
+               <button id="butGenerate" type="button">Generate Binary Image</button>
              </div>
           </li>
 
