@@ -121,23 +121,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
     butOffline.addEventListener("click", () => {
-        clickOffline();/*.catch(async (e) => {
+        clickOffline().catch(async (e) => {
             // Default Help Message:
             // if we've failed to catch the message before now, we need to give
             // the generic advice: reconnect, refresh, go to support
             errorMsg(
-                `Connection Error, your board may be incompatible. Things to try:\n` +
-                `1. Reset your board and try again.\n` +
-                `  - Look for a little black button near the power port.\n` +
-                `2. Refresh your browser and try again.\n` +
-                `3. Make sure you are not connected in another browser tab.\n` +
-                `4. Double-check your board type and serial port selection.\n` +
-                `5. Post on the Support Forum (link above) with this info:\n\n` +
+                `Generation Error. Things to try:\n` +
+                `1. Refresh your browser and try again.\n` +
+                `2. Check the Browser Console for additional information.\n` +
+                `3. Post on the Support Forum (link above) with this info:\n\n` +
                 `"Firmware Tool: ${e}"\n`
             );
             await disconnect();
             toggleUIConnected(false);
-        });*/
+        });
     });
     butClear.addEventListener("click", clickClear);
     butProgram.addEventListener("click", clickProgram);
@@ -516,7 +513,7 @@ async function reset() {
 }
 
 async function clickOffline() {
-    appDiv.classList.add("gererating");
+    appDiv.classList.add("generating");
     showStep(3);
 }
 
@@ -804,7 +801,6 @@ async function programScript(stages) {
 
     // pretty print the settings object with VERSION placeholders filled
     const settings = await mergeSettings();
-    console.log(settings);
     const settingsString = JSON.stringify(settings, null, 2);
     const strippedSettings = settingsString.replaceAll('VERSION', semver);
     logMsg(`Flashing with settings: <pre>${strippedSettings}</pre>`);
@@ -914,7 +910,6 @@ async function programScript(stages) {
                 name: "Merging All Files Together",
                 func: async function(params) {
                     let finalBinary = await mergebin.generate(params.mergeParams.chip);
-                    console.log(finalBinary);
 
                     // Download the Partition
                     var blob = new Blob([finalBinary], {

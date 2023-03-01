@@ -233,7 +233,7 @@
     height: 0;
   }
 
-  #app.connected #commands, #app.gererating #commands {
+  #app.connected #commands, #app.generating #commands {
     height: 150px;
   }
 
@@ -241,7 +241,7 @@
     display: none;
   }
 
-  #app.gererating li.online {
+  #app.generating li.online {
     display: none;
   }
 
