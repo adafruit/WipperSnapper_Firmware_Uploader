@@ -3,38 +3,43 @@
 /* global reader */
 'use strict';
 
-import * as esptoolPackage from "https://unpkg.com/esp-web-flasher@5.1.2/dist/web/index.js?module"
+import * as esptoolPackage from "https://unpkg.com/esp-web-flasher@5.1.2/dist/web/index.js?module";
 import {LittleFS, LfsConfig, LfsFile, LFS_O_WRONLY, LFS_O_CREAT, LFS_O_TRUNC} from 'https://cdn.jsdelivr.net/gh/adafruit/littlefs-pure-js@1.0.3/littlefs.js';
+import {MergeBin} from 'https://cdn.jsdelivr.net/gh/adafruit/esptool-mergebin-js/mergebin.js?module'
 
-const FIRMWARE_API = "//io.adafruit.com"
-const QUICK_START_LINK = "https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper/installing-wippersnapper"
-const DO_DOWNLOAD = false
+const FIRMWARE_API = "//io.adafruit.com";
+const QUICK_START_LINK = "https://learn.adafruit.com/quickstart-adafruit-io-wippersnapper/installing-wippersnapper";
 
 const BOARD_TO_CHIP_MAP = {
-  'feather-esp8266': esptoolPackage.CHIP_FAMILY_ESP8266,
-  'feather-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
-  'feather-esp32-v2': esptoolPackage.CHIP_FAMILY_ESP32,
-  'qtpy-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
-  'qtpy-esp32c3': esptoolPackage.CHIP_FAMILY_ESP32C3
-}
+    'feather-esp8266': esptoolPackage.CHIP_FAMILY_ESP8266,
+    'feather-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
+    'feather-esp32-v2': esptoolPackage.CHIP_FAMILY_ESP32,
+    'qtpy-esp32': esptoolPackage.CHIP_FAMILY_ESP32,
+    'qtpy-esp32c3': esptoolPackage.CHIP_FAMILY_ESP32C3
+};
 
 let espStub;
 
 const baudRates = [
-  115200,
-  230400,
-  460800,
-  921600,
+    115200,
+    230400,
+    460800,
+    921600,
 ];
 const DEFAULT_BAUD_RATE = baudRates[0];
 
 const stage_erase_all = 0x01;
 const stage_flash_structure = 0x02;
 const stage_flash_nvm = 0x03;
+const stage_prep_merge = 0x04;
+const stage_gen_structure = 0x05;
+const stage_gen_nvm = 0x06;
+const stage_create_bin = 0x07;
 
-const UNSIGNED_INT_SIZE = 4
+const UNSIGNED_INT_SIZE = 4;
 
 const full_program = [stage_erase_all, stage_flash_structure, stage_flash_nvm];
+const generate_only_program = [stage_prep_merge, stage_gen_structure, stage_gen_nvm, stage_create_bin];
 const nvm_only_program = [stage_flash_nvm];
 
 const maxLogLength = 100;
@@ -43,10 +48,12 @@ const semverLabel = document.getElementById("semver");
 const butShowConsole = document.getElementById("butShowConsole");
 const consoleItems = document.getElementsByClassName("console-item");
 const butConnect = document.getElementById("butConnect");
+const butOffline = document.getElementById("butOffline");
 const binSelector = document.getElementById("binSelector");
 const baudRate = document.getElementById("baudRate");
 const butClear = document.getElementById("butClear");
 const butProgram = document.getElementById("butProgram");
+const butGenerate = document.getElementById("butGenerate");
 const butProgramNvm = document.getElementById("butProgramNvm");
 const autoscroll = document.getElementById("autoscroll");
 const lightSS = document.getElementById("light");
@@ -56,20 +63,21 @@ const partitionData = document.querySelectorAll(".field input.partition-data");
 const progress = document.getElementById("progressBar");
 const stepname = document.getElementById("stepname");
 const appDiv = document.getElementById("app");
-const disableWhileBusy = [partitionData, butProgram, butProgramNvm, baudRate];
+const disableWhileBusy = [partitionData, butProgram, butGenerate, butProgramNvm, baudRate];
 
 let showConsole = false;
 let debug;
+let mergebin = null;
 
 // querystring options
-const QUERYSTRING_BOARD_KEY = 'board'
-const QUERYSTRING_DEBUG_KEY = 'debug'
-const QUERYSTRING_STAGING_KEY = 'staging'
+const QUERYSTRING_BOARD_KEY = 'board';
+const QUERYSTRING_DEBUG_KEY = 'debug';
+const QUERYSTRING_STAGING_KEY = 'staging';
 
 function getFromQuerystring(key) {
-    const location = new URL(document.location)
-    const params = new URLSearchParams(location.search)
-    return params.get(key)
+    const location = new URL(document.location);
+    const params = new URLSearchParams(location.search);
+    return params.get(key);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -79,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
     location.search
         .substr(1)
         .split("&")
-        .forEach(function (item) {
+        .forEach(function(item) {
             getArgs[item.split("=")[0]] = item.split("=")[1];
         });
     if (getArgs["debug"] !== undefined) {
@@ -87,10 +95,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     butShowConsole.addEventListener("click", () => {
-        showConsole = !showConsole
-        saveSetting("showConsole", showConsole)
-        toggleConsole(showConsole)
-    })
+        showConsole = !showConsole;
+        saveSetting("showConsole", showConsole);
+        toggleConsole(showConsole);
+    });
 
     // register dom event listeners
     butConnect.addEventListener("click", () => {
@@ -112,8 +120,25 @@ document.addEventListener("DOMContentLoaded", () => {
             toggleUIConnected(false);
         });
     });
+    butOffline.addEventListener("click", () => {
+        clickOffline().catch(async (e) => {
+            // Default Help Message:
+            // if we've failed to catch the message before now, we need to give
+            // the generic advice: reconnect, refresh, go to support
+            errorMsg(
+                `Generation Error. Things to try:\n` +
+                `1. Refresh your browser and try again.\n` +
+                `2. Check the Browser Console for additional information.\n` +
+                `3. Post on the Support Forum (link above) with this info:\n\n` +
+                `"Firmware Tool: ${e}"\n`
+            );
+            await disconnect();
+            toggleUIConnected(false);
+        });
+    });
     butClear.addEventListener("click", clickClear);
     butProgram.addEventListener("click", clickProgram);
+    butGenerate.addEventListener("click", clickGenerate);
     butProgramNvm.addEventListener("click", clickProgramNvm);
     for (let i = 0; i < partitionData.length; i++) {
         partitionData[i].addEventListener("change", checkProgrammable);
@@ -173,179 +198,179 @@ function createOption(value, text) {
 }
 */
 
-let latestFirmwares = []
+let latestFirmwares = [];
 async function initBinSelector() {
     // fetch firmware index from io-rails, a list of available littlefs
     // firmware items, like the example above
-    const response = await fetch(`${FIRMWARE_API}/wipper_releases`)
+    const response = await fetch(`${FIRMWARE_API}/wipper_releases`);
     // extract the semver from the custom header
     if (!initSemver(response.headers.get('AIO-WS-Firmware-Semver'))) {
-      console.error("No semver information in the response headers!")
+        console.error("No semver information in the response headers!");
     }
     // parse and store firmware data for reuse
-    latestFirmwares = await(response.json())
+    latestFirmwares = await (response.json());
 
     // populate the bin select element
-    populateBinSelector("Click Here to Find Your Board:")
+    populateBinSelector("Click Here to Find Your Board:");
 
     // pull default board id out of querystring
     if (setDefaultBoard()) {
         // inject board name into alternate step 1
-        const boardNameItems = document.getElementsByClassName('selected-board-name')
+        const boardNameItems = document.getElementsByClassName('selected-board-name');
         for (let idx = 0; idx < boardNameItems.length; idx++) {
-          boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
+            boardNameItems[idx].innerHTML = binSelector.selectedOptions[0].text;
         }
         // show alternate step 1
-        showAltStepOne()
+        showAltStepOne();
     } else {
         binSelector.addEventListener("change", changeBin);
     }
 }
 
-function populateBinSelector(title, filter=() => true) {
+function populateBinSelector(title, filter = () => true) {
     binSelector.innerHTML = '';
 
-    const filteredFirmwares = latestFirmwares.filter(filter)
-    const any = filteredFirmwares.length > 0
+    const filteredFirmwares = latestFirmwares.filter(filter);
+    const any = filteredFirmwares.length > 0;
 
-    binSelector.add(createOption(null, any ? title : 'No Compatible Boards'))
+    binSelector.add(createOption(null, any ? title : 'No Compatible Boards'));
 
     filteredFirmwares.forEach(firmware => {
         binSelector.add(createOption(firmware.id, firmware.name));
-    })
+    });
 
-    return any
+    return any;
 }
 
 function returnToStepOne() {
-    showStep(1, { hideHigherSteps: false });
-    doThingOnClass("add", "dimmed", "step-2")
+    showStep(1, {hideHigherSteps: false});
+    doThingOnClass("add", "dimmed", "step-2");
     // yellow fade like 2005
-    setTimeout(() => doThingOnClass("add", "highlight", "step-1"), 0)
-    setTimeout(() => doThingOnClass("remove", "highlight", "step-1"), 1500)
-    doThingOnClass("add", "hidden", "step-1 alt")
+    setTimeout(() => doThingOnClass("add", "highlight", "step-1"), 0);
+    setTimeout(() => doThingOnClass("remove", "highlight", "step-1"), 1500);
+    doThingOnClass("add", "hidden", "step-1 alt");
 }
 
 function showAltStepOne() {
-    doThingOnClass("add", "hidden", "step-1")
-    doThingOnClass("remove", "hidden", "step-1 alt")
+    doThingOnClass("add", "hidden", "step-1");
+    doThingOnClass("remove", "hidden", "step-1 alt");
 }
 
 function doThingOnClass(method, thing, classSelector) {
-    const classItems = document.getElementsByClassName(classSelector)
+    const classItems = document.getElementsByClassName(classSelector);
     for (let idx = 0; idx < classItems.length; idx++) {
-        classItems.item(idx).classList[method](thing)
+        classItems.item(idx).classList[method](thing);
     }
 }
 
 function setDefaultBoard() {
-    const board = getFromQuerystring(QUERYSTRING_BOARD_KEY)
+    const board = getFromQuerystring(QUERYSTRING_BOARD_KEY);
     if (board && hasBoard(board)) {
-        binSelector.value = board
-        showStep(2, { dimLowerSteps: false })
-        return true
+        binSelector.value = board;
+        showStep(2, {dimLowerSteps: false});
+        return true;
     }
 }
 
 function hasBoard(board) {
     for (let opt of binSelector.options) {
-        if (opt.value == board) { return opt }
+        if (opt.value == board) {return opt;}
     }
 }
 
 function changeBin(evt) {
     (evt.target.value && evt.target.value != "null") ?
         showStep(2) :
-        hideStep(2)
+        hideStep(2);
 }
 
-function showStep(stepNumber, options={}) {
-    const dimLowerSteps = !(options.dimLowerSteps === false)
-    const hideHigherSteps = !(options.hideHigherSteps === false)
+function showStep(stepNumber, options = {}) {
+    const dimLowerSteps = !(options.dimLowerSteps === false);
+    const hideHigherSteps = !(options.hideHigherSteps === false);
     // reveal the new step
-    doThingOnClass("remove", "hidden", `step-${stepNumber}`)
-    doThingOnClass("remove", "dimmed", `step-${stepNumber}`)
+    doThingOnClass("remove", "hidden", `step-${stepNumber}`);
+    doThingOnClass("remove", "dimmed", `step-${stepNumber}`);
 
     if (dimLowerSteps) {
         for (let step = stepNumber - 1; step > 0; step--) {
-            doThingOnClass("add", "dimmed", `step-${step}`)
+            doThingOnClass("add", "dimmed", `step-${step}`);
         }
     }
 
     if (hideHigherSteps) {
-      for (let step = stepNumber + 1; step <= 6; step++) {
-          doThingOnClass("add", "hidden", `step-${step}`)
-      }
+        for (let step = stepNumber + 1; step <= 6; step++) {
+            doThingOnClass("add", "hidden", `step-${step}`);
+        }
     }
 
     // per-step things, like a state machine
-    switch(stepNumber) {
+    switch (stepNumber) {
         case 3:
-            checkProgrammable()
+            checkProgrammable();
             break;
         case 4:
-            butProgram.disabled = false
-            butProgramNvm.disabled = false
+            butProgram.disabled = false;
+            butProgramNvm.disabled = false;
             break;
     }
 
     // scroll to the bottom next frame
-    setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0)
+    setTimeout((() => appDiv.scrollTop = appDiv.scrollHeight), 0);
 }
 
 function hideStep(stepNumber) {
-    doThingOnClass("add", "hidden", `step-${stepNumber}`)
+    doThingOnClass("add", "hidden", `step-${stepNumber}`);
 }
 
 function toggleConsole(show) {
     // hide/show the console log and its widgets
-    const consoleItemsMethod = show ? "remove" : "add"
+    const consoleItemsMethod = show ? "remove" : "add";
     for (let idx = 0; idx < consoleItems.length; idx++) {
-        consoleItems.item(idx).classList[consoleItemsMethod]("hidden")
+        consoleItems.item(idx).classList[consoleItemsMethod]("hidden");
     }
     // toggle the button
-    butShowConsole.checked = show
+    butShowConsole.checked = show;
     // tell the app if it's sharing space with the console
-    const appDivMethod = show ? "add" : "remove"
-    appDiv.classList[appDivMethod]("with-console")
+    const appDivMethod = show ? "add" : "remove";
+    appDiv.classList[appDivMethod]("with-console");
 
     // scroll both to the bottom a moment after adding
     setTimeout(() => {
-        log.scrollTop = log.scrollHeight
-        appDiv.scrollTop = appDiv.scrollHeight
-    }, 200)
+        log.scrollTop = log.scrollHeight;
+        appDiv.scrollTop = appDiv.scrollHeight;
+    }, 200);
 }
 
-let semver
+let semver;
 function initSemver(newSemver) {
-    if (!newSemver) { return }
+    if (!newSemver) {return; }
 
-    semver = newSemver
-    semverLabel.innerHTML = semver
+    semver = newSemver;
+    semverLabel.innerHTML = semver;
 
-    return true
+    return true;
 }
 
 function lookupFirmwareByBinSelector() {
     // get the currently selected board id
-    const selectedId = binSelector.value
-    if (!selectedId || selectedId === 'null') { throw new Error("No board selected.") }
+    const selectedId = binSelector.value;
+    if (!selectedId || selectedId === 'null') {throw new Error("No board selected.");}
 
     // grab the stored firmware settings for this id
-    let selectedFirmware
+    let selectedFirmware;
     for (let firmware of latestFirmwares) {
         if (firmware.id === selectedId) {
-            selectedFirmware = firmware
-            break
+            selectedFirmware = firmware;
+            break;
         }
     }
 
     if (!selectedFirmware) {
-        const { text, value } = binSelector.selectedOptions[0]
-        throw new Error(`No firmware entry for: ${text} (${value})`)
+        const {text, value} = binSelector.selectedOptions[0];
+        throw new Error(`No firmware entry for: ${text} (${value})`);
     }
 
-    return selectedFirmware
+    return selectedFirmware;
 }
 
 function initBaudRate() {
@@ -420,11 +445,11 @@ function debugMsg(...args) {
         } else if (typeof arg == "object" && arg instanceof Uint8Array) {
             logMsg(
                 prefix +
-                    "[" +
-                    Array.from(arg)
-                        .map((value) => espStub.toHex(value))
-                        .join(", ") +
-                    "]"
+                "[" +
+                Array.from(arg)
+                    .map((value) => espStub.toHex(value))
+                    .join(", ") +
+                "]"
             );
         } else {
             logMsg(prefix + "Unhandled type of argument:" + typeof arg);
@@ -434,22 +459,22 @@ function debugMsg(...args) {
     }
 }
 
-function errorMsg(text, forwardLink=null) {
+function errorMsg(text, forwardLink = null) {
     // regular log with red Error: prefix
     logMsg('<span class="error-message">Error:</span> ' + text);
     // strip html for console and alerts
-    const strippedText = text.replaceAll(/<.*?>/g, "")
+    const strippedText = text.replaceAll(/<.*?>/g, "");
     // all errors go to the browser dev console
     console.error(strippedText);
     // Make sure user sees the error if the log is closed
     if (!showConsole) {
-      if (forwardLink) {
-        if (confirm(`${strippedText}\nClick 'OK' to be forwarded there now.`)) {
-          document.location = forwardLink
+        if (forwardLink) {
+            if (confirm(`${strippedText}\nClick 'OK' to be forwarded there now.`)) {
+                document.location = forwardLink;
+            }
+        } else {
+            alert(strippedText);
         }
-      } else {
-        alert(strippedText)
-      }
     }
 }
 
@@ -487,6 +512,11 @@ async function reset() {
     log.innerHTML = "";
 }
 
+async function clickOffline() {
+    appDiv.classList.add("generating");
+    showStep(3);
+}
+
 /**
  * @name clickConnect
  * Click handler for the connect/disconnect button.
@@ -495,7 +525,7 @@ async function clickConnect() {
     await disconnect();
 
     butConnect.textContent = "Connecting...";
-    butConnect.disabled = true
+    butConnect.disabled = true;
 
     const esploader = await esptoolPackage.connect({
         log: (...args) => logMsg(...args),
@@ -516,86 +546,86 @@ async function clickConnect() {
         logMsg("MAC Address: " + formatMacAddr(esploader.macAddr()));
 
         const nextStepCallback = async () => {
-            showStep(3)
+            showStep(3);
             espStub = await esploader.runStub();
             espStub.addEventListener("disconnect", () => {
-              toggleUIConnected(false);
-              espStub = false;
+                toggleUIConnected(false);
+                espStub = false;
             });
             await setBaudRateIfChipSupports(chipType);
-        }
+        };
 
         // check chip compatibility
         if (checkChipTypeMatchesSelectedBoard(chipType)) {
-            await nextStepCallback()
-            return
+            await nextStepCallback();
+            return;
         }
 
         // not compatible, grab the board name for messaging...
-        const boardName = lookupFirmwareByBinSelector().name
+        const boardName = lookupFirmwareByBinSelector().name;
         // ...and reset the selector to only compatible boards, if any!
         const any = populateBinSelector(`Possible ${chipName} Boards:`, firmware => {
-            return (BOARD_TO_CHIP_MAP[firmware.id] == chipType)
-        })
+            return (BOARD_TO_CHIP_MAP[firmware.id] == chipType);
+        });
 
         if (any) {
-          // there are compatible boards available
-          // reset the bin selector
-          binSelector.disabled = false
-          binSelector.removeEventListener("change", changeBin);
-          binSelector.addEventListener("change", async evt => {
-              // upon compatible board selection, reveal next step
-              if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
-                  logMsg(`Compatible board selected: <strong>${boardName}</strong>`)
-                  await nextStepCallback()
-              }
-          });
+            // there are compatible boards available
+            // reset the bin selector
+            binSelector.disabled = false;
+            binSelector.removeEventListener("change", changeBin);
+            binSelector.addEventListener("change", async evt => {
+                // upon compatible board selection, reveal next step
+                if (evt.target.value && evt.target.value != "null" && checkChipTypeMatchesSelectedBoard(chipType)) {
+                    logMsg(`Compatible board selected: <strong>${boardName}</strong>`);
+                    await nextStepCallback();
+                }
+            });
 
-          // explain all this to the user
-          errorMsg(`Oops, wrong board!\n` +
-            `- you selected: <strong>${boardName}</strong>\n` +
-            `- you connected: <strong>${chipName}</strong>\n` +
-            `You can:\n` +
-            `- go back to Step 1 and select a compatible board\n` +
-            `- connect a different board and refresh the browser`)
+            // explain all this to the user
+            errorMsg(`Oops, wrong board!\n` +
+                `- you selected: <strong>${boardName}</strong>\n` +
+                `- you connected: <strong>${chipName}</strong>\n` +
+                `You can:\n` +
+                `- go back to Step 1 and select a compatible board\n` +
+                `- connect a different board and refresh the browser`);
 
-          // reveal step one
-          returnToStepOne()
-          return
+            // reveal step one
+            returnToStepOne();
+            return;
         }
 
         // no compatible boards available
         // explain to the user with a link to the appropriate guide
         errorMsg(`Oops! This tool doesn't support your board, <strong>${chipName}</strong>, but WipperSnapper still might!\n` +
-          `Visit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`, QUICK_START_LINK)
+            `Visit <a href="${QUICK_START_LINK}">the quick-start guide</a> for a list of supported boards and their install instructions.`, QUICK_START_LINK);
         // can't use it so disconnect now
-        await disconnect()
+        await disconnect();
 
     } catch (err) {
-        console.error(err)
+        console.error(err);
         await esploader.disconnect();
         // Disconnection before complete
         toggleUIConnected(false);
-        showStep(2, { hideHigherSteps: true })
-        errorMsg("Oops, we lost connection to your board before completing the install. Please check your USB connection and click Connect again. Refresh the browser if it becomes unresponsive.")
+        showStep(2, {hideHigherSteps: true});
+        errorMsg("Oops, we lost connection to your board before completing the install. Please check your USB connection and click Connect again. Refresh the browser if it becomes unresponsive.");
     }
 }
 
-function checkChipTypeMatchesSelectedBoard(chipType, boardId=null) {
+function checkChipTypeMatchesSelectedBoard(chipType, boardId = null) {
     // allow overriding which board we're checking against
-    boardId = boardId || binSelector.value
+    boardId = boardId || binSelector.value;
     // wrap the lookup
-    return (BOARD_TO_CHIP_MAP[boardId] == chipType)
+    return (BOARD_TO_CHIP_MAP[boardId] == chipType);
 }
 
 async function setBaudRateIfChipSupports(chipType) {
     const baud = parseInt(baudRate.value);
 
-    if (baud == DEFAULT_BAUD_RATE) { return } // already the default
+    if (baud == DEFAULT_BAUD_RATE) {return; } // already the default
 
     if (chipType == esptoolPackage.CHIP_FAMILY_ESP32) { // only supports the default
         logMsg("WARNING: ESP32 is having issues working at speeds faster than 115200. Continuing at 115200 for now...");
-        return
+        return;
     }
 
     await changeBaudRate(baud);
@@ -641,6 +671,15 @@ async function clickProgram() {
 }
 
 /**
+ * @name clickGenerate
+ * Click handler for the generate button.
+ */
+async function clickGenerate() {
+    await programScript(generate_only_program);
+}
+
+
+/**
  * @name clickProgramNvm
  * Click handler for the program button.
  */
@@ -649,7 +688,7 @@ async function clickProgramNvm() {
 }
 
 function stagingFlagSet() {
-    return getFromQuerystring(QUERYSTRING_STAGING_KEY)
+    return getFromQuerystring(QUERYSTRING_STAGING_KEY);
 }
 
 async function populateSecretsFile(path) {
@@ -658,9 +697,9 @@ async function populateSecretsFile(path) {
 
     // Get the secrets data
     for (let field of getValidFields()) {
-        const { id, value } = partitionData[field]
-        if(id === "status_pixel_brightness") {
-            const floatValue = parseFloat(value)
+        const {id, value} = partitionData[field];
+        if (id === "status_pixel_brightness") {
+            const floatValue = parseFloat(value);
             updateObject(contents, id, isNaN(floatValue) ? 0.2 : floatValue);
         } else {
             updateObject(contents, id, value);
@@ -668,8 +707,8 @@ async function populateSecretsFile(path) {
     }
 
     // add "io_url" property to json root with the staging url override
-    if(stagingFlagSet()) {
-        updateObject(contents, 'io_url', 'io.adafruit.us')
+    if (stagingFlagSet()) {
+        updateObject(contents, 'io_url', 'io.adafruit.us');
     }
     // Convert the data to text and return
     return JSON.stringify(contents, null, 4);
@@ -689,18 +728,18 @@ function updateObject(obj, path, value) {
 }
 
 
-let chipFiles
+let chipFiles;
 async function fetchFirmwareForSelectedBoard() {
-    const firmware = lookupFirmwareByBinSelector()
+    const firmware = lookupFirmwareByBinSelector();
 
-    logMsg(`Fetching latest firmware...`)
+    logMsg(`Fetching latest firmware...`);
     const response = await fetch(`${FIRMWARE_API}/wipper_releases/${firmware.id}`, {
-        headers: { Accept: 'application/octet-stream' }
-    })
+        headers: {Accept: 'application/octet-stream'}
+    });
 
     // Zip stuff
-    logMsg("Unzipping firmware bundle...")
-    const blob = await response.blob()
+    logMsg("Unzipping firmware bundle...");
+    const blob = await response.blob();
     const reader = new zip.ZipReader(new zip.BlobReader(blob));
 
     // unzip into local file cache
@@ -718,16 +757,16 @@ const BASE_SETTINGS = {
 };
 
 function findInZip(filename) {
-    const regex = RegExp(filename.replace("VERSION", "(.*)"))
+    const regex = RegExp(filename.replace("VERSION", "(.*)"));
     for (let i = 0; i < chipFiles.length; i++) {
         if (chipFiles[i].filename.match(regex)) {
-            return chipFiles[i]
+            return chipFiles[i];
         }
     }
 }
 
 async function mergeSettings() {
-    const { settings } = lookupFirmwareByBinSelector()
+    const {settings} = lookupFirmwareByBinSelector();
 
     const transformedSettings = {
         ...settings,
@@ -737,50 +776,61 @@ async function mergeSettings() {
         // from hex strings to numbers
         structure: Object.keys(settings.structure).reduce((newObj, hexString) => {
             // new object, converted key (hex string -> numeric), same value
-            newObj[parseInt(hexString, 16)] = settings.structure[hexString]
+            newObj[parseInt(hexString, 16)] = settings.structure[hexString];
 
-            return newObj
+            return newObj;
         }, {})
-    }
+    };
 
     // merge with the defaults and send back
     return {
         ...BASE_SETTINGS,
         ...transformedSettings
-    }
+    };
 }
 
 async function programScript(stages) {
-    butProgram.disabled = true
-    butProgramNvm.disabled = true
+    butProgram.disabled = true;
+    butProgramNvm.disabled = true;
     try {
-        await fetchFirmwareForSelectedBoard()
-    } catch(error) {
-        errorMsg(error.message)
-        return
+        await fetchFirmwareForSelectedBoard();
+    } catch (error) {
+        errorMsg(error.message);
+        return;
     }
 
     // pretty print the settings object with VERSION placeholders filled
-    const settings = await mergeSettings()
-    const settingsString = JSON.stringify(settings, null, 2)
-    const strippedSettings = settingsString.replaceAll('VERSION', semver)
-    logMsg(`Flashing with settings: <pre>${strippedSettings}</pre>`)
+    const settings = await mergeSettings();
+    const settingsString = JSON.stringify(settings, null, 2);
+    const strippedSettings = settingsString.replaceAll('VERSION', semver);
+    logMsg(`Flashing with settings: <pre>${strippedSettings}</pre>`);
 
     let steps = [];
     for (let i = 0; i < stages.length; i++) {
         if (stages[i] == stage_erase_all) {
             steps.push({
                 name: "Erasing Flash",
-                func: async function () {
+                func: async function() {
                     await espStub.eraseFlash();
                 },
                 params: {},
             });
+
+
+            mergebin
+        } else if (stages[i] == stage_prep_merge) {
+                steps.push({
+                    name: "Preparing Blank Image",
+                    func: async function() {
+                        mergebin = new MergeBin();
+                    },
+                    params: {},
+                });
         } else if (stages[i] == stage_flash_structure) {
             for (const [offset, filename] of Object.entries(settings.structure)) {
                 steps.push({
                     name: "Flashing " + filename.replace('VERSION', semver),
-                    func: async function (params) {
+                    func: async function(params) {
                         const firmware = await getFirmware(params.filename);
                         const progressBar = progress.querySelector("div");
                         lastPercent = 0;
@@ -788,7 +838,7 @@ async function programScript(stages) {
                             firmware,
                             (bytesWritten, totalBytes
                             ) => {
-                                let percentage = Math.floor((bytesWritten / totalBytes) * 100)
+                                let percentage = Math.floor((bytesWritten / totalBytes) * 100);
                                 if (percentage != lastPercent) {
                                     logMsg(`${percentage}% (${bytesWritten}/${totalBytes})...`);
                                     lastPercent = percentage;
@@ -805,42 +855,74 @@ async function programScript(stages) {
                     },
                 });
             }
+        } else if (stages[i] == stage_gen_structure) {
+            for (const [offset, filename] of Object.entries(settings.structure)) {
+                steps.push({
+                    name: "Adding " + filename.replace('VERSION', semver),
+                    func: async function(params) {
+                        const firmware = await getFirmware(params.filename);
+                        mergebin.addFile(firmware, params.offset);
+                    },
+                    params: {
+                        filename: filename,
+                        offset: offset,
+                    },
+                });
+            }
         } else if (stages[i] == stage_flash_nvm) {
             steps.push({
                 name: "Generating and Flashing LittleFS Partition",
-                func: async function (params) {
+                func: async function(params) {
                     let fileSystemImage = await generate(params.flashParams);
-
-                    if (DO_DOWNLOAD) {
-                        // Download the Partition
-                        var blob = new Blob([new Uint8Array(fileSystemImage)], {
-                            type: "application/octet-stream",
-                        });
-                        var link = document.createElement("a");
-                        link.href = window.URL.createObjectURL(blob);
-                        link.download = "littleFS.bin";
-                        link.click();
-                        link.remove();
-                    } else {
-                        const progressBar = progress.querySelector("div");
-                        lastPercent = 0;
-                        await espStub.flashData(
-                            new Uint8Array(fileSystemImage).buffer,
-                            (bytesWritten, totalBytes) => {
-                                let percentage = Math.floor((bytesWritten / totalBytes) * 100)
-                                if (percentage != lastPercent) {
-                                    logMsg(`${percentage}% (${bytesWritten}/${totalBytes})...`);
-                                    lastPercent = percentage;
-                                }
-                                progressBar.style.width = percentage + "%";
-                            },
-                            params.flashParams.offset,
-                            0
-                        );
-                    }
+                    const progressBar = progress.querySelector("div");
+                    lastPercent = 0;
+                    await espStub.flashData(
+                        new Uint8Array(fileSystemImage).buffer,
+                        (bytesWritten, totalBytes) => {
+                            let percentage = Math.floor((bytesWritten / totalBytes) * 100);
+                            if (percentage != lastPercent) {
+                                logMsg(`${percentage}% (${bytesWritten}/${totalBytes})...`);
+                                lastPercent = percentage;
+                            }
+                            progressBar.style.width = percentage + "%";
+                        },
+                        params.flashParams.offset,
+                        0
+                    );
                 },
                 params: {
                     flashParams: settings,
+                },
+            });
+        } else if (stages[i] == stage_gen_nvm) {
+            steps.push({
+                name: "Generating and Adding LittleFS Partition",
+                func: async function(params) {
+                    let fileSystemImage = await generate(params.mergeParams);
+                    mergebin.addFile(fileSystemImage, params.mergeParams.offset);
+                },
+                params: {
+                    mergeParams: settings,
+                },
+            });
+        } else if (stages[i] == stage_create_bin) {
+            steps.push({
+                name: "Merging All Files Together",
+                func: async function(params) {
+                    let finalBinary = await mergebin.generate(params.mergeParams.chip);
+
+                    // Download the Partition
+                    var blob = new Blob([finalBinary], {
+                        type: "application/octet-stream",
+                    });
+                    var link = document.createElement("a");
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = "wippersnapper.bin";
+                    link.click();
+                    link.remove();
+                },
+                params: {
+                    mergeParams: settings,
                 },
             });
         }
@@ -858,7 +940,7 @@ async function programScript(stages) {
 
     progress.classList.remove("hidden");
     stepname.classList.remove("hidden");
-    showStep(5)
+    showStep(5);
 
     for (let i = 0; i < steps.length; i++) {
         stepname.innerText = steps[i].name + " (" + (i + 1) + "/" + steps.length + ")...";
@@ -890,7 +972,7 @@ function getValidFields() {
     // Validate user inputs
     const validFields = [];
     for (let i = 0; i < 5; i++) {
-        const { id, value } = partitionData[i]
+        const {id, value} = partitionData[i];
         // password & brightness can be blank, the rest must have some value
         if (id === "network_type_wifi.network_password" ||
             id === "status_pixel_brightness" ||
@@ -907,9 +989,9 @@ function getValidFields() {
  */
 async function checkProgrammable() {
     if (getValidFields().length < 5) {
-      hideStep(4)
+        hideStep(4);
     } else {
-      showStep(4, { dimLowerSteps: false })
+        showStep(4, {dimLowerSteps: false});
     }
 }
 
@@ -960,12 +1042,12 @@ function toggleUIConnected(connected) {
     let lbl = "Connect";
     if (connected) {
         lbl = "Connected";
-        butConnect.disabled = true
-        binSelector.disabled = true
+        butConnect.disabled = true;
+        binSelector.disabled = true;
     } else {
         toggleUIToolbar(false);
-        butConnect.disabled = false
-        binSelector.disabled = false
+        butConnect.disabled = false;
+        binSelector.disabled = false;
     }
     butConnect.textContent = lbl;
 }
@@ -988,126 +1070,127 @@ function saveSetting(setting, value) {
 }
 
 async function getFirmware(filename) {
-    const file = findInZip(filename)
+    const file = findInZip(filename);
 
     if (!file) {
-      const msg = `No firmware file name ${filename} found in the zip!`
-      errorMsg(msg)
-      throw new Error(msg)
+        const msg = `No firmware file name ${filename} found in the zip!`;
+        errorMsg(msg);
+        throw new Error(msg);
     }
 
-    logMsg(`Unzipping ${filename.replace('VERSION', semver)}...`)
-    const firmwareFile = await file.getData(new zip.Uint8ArrayWriter())
+    logMsg(`Unzipping ${filename.replace('VERSION', semver)}...`);
+    const firmwareFile = await file.getData(new zip.Uint8ArrayWriter());
 
-    return firmwareFile.buffer // ESPTool wants an ArrayBuffer
+    return firmwareFile.buffer; // ESPTool wants an ArrayBuffer
 }
 
 async function generate(params) {
-  /*
-  Generate LittleFS Partition
-  */
+    /*
+    Generate LittleFS Partition
+    */
 
-  let binaryOutput = {data: new Uint8Array(params.fileSystemSize).fill(0xFF)};
-  let cfg = new LfsConfig({
-    blockSize: params.blockSize,
-    blockCount: params.fileSystemSize / params.blockSize,
-    flash: binaryOutput})
+    let binaryOutput = {data: new Uint8Array(params.fileSystemSize).fill(0xFF)};
+    let cfg = new LfsConfig({
+        blockSize: params.blockSize,
+        blockCount: params.fileSystemSize / params.blockSize,
+        flash: binaryOutput
+    });
 
-  let littlefs = new LittleFS(cfg);
-  var err = littlefs.format();
-  if (err != 0) {
-      console.error("error formatting: " + err);
-      return err
-  }
-  var err = littlefs.mount();
-  if (err != 0) {
-      console.error("error mounting: " + err);
-      return err
-  }
-
-  // Add files here
-  littlefs.mkdir("/");
-  // Add time metadata 't'
-  let ftime = parseInt(Date.now() / 1000);
-  var err = littlefs.setattr("/", 't', ftime, UNSIGNED_INT_SIZE);
-  if (err != 0) {
-      console.error("error setting folder attribute: " + err);
-      return err
-  }
-
-  var err = littlefs.setattr("/", 'c', ftime, UNSIGNED_INT_SIZE);
-  if (err != 0) {
-      console.error("error setting folder attribute: " + err);
-      return err
-  }
-
-  let contentFunc;
-  // Loop through params.files
-  for (let fileObj of params.files) {
-    // Add files here
-
-    if (fileObj.callback) {
-        contentFunc = fileObj.callback;
-    } else {
-        contentFunc = getFileText;
-    }
-    // Get contents
-    let filePath = "/" + fileObj.filename;
-    let fileContents = await contentFunc(params.rootFolder + filePath);
-    let file = new LfsFile();
-    var err = littlefs.fileOpen(file, filePath, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
+    let littlefs = new LittleFS(cfg);
+    var err = littlefs.format();
     if (err != 0) {
-        console.error("error opening file: " + err);
+        console.error("error formatting: " + err);
+        return err;
+    }
+    var err = littlefs.mount();
+    if (err != 0) {
+        console.error("error mounting: " + err);
         return err;
     }
 
-    var size = littlefs.fileWrite(file, fileContents, fileContents.length);
-    if (size >= 0) {
-        console.log("Wrote " + size + " bytes...");
-    } else {
-        console.error("error writing file: " + size);
-        return size
-    }
-
-    var err = littlefs.fileClose(file);
+    // Add files here
+    littlefs.mkdir("/");
+    // Add time metadata 't'
+    let ftime = parseInt(Date.now() / 1000);
+    var err = littlefs.setattr("/", 't', ftime, UNSIGNED_INT_SIZE);
     if (err != 0) {
-        console.error("error closing file: " + err);
-        return err
+        console.error("error setting folder attribute: " + err);
+        return err;
     }
 
-    // Set file attributes for creation and modify time
-    var err = littlefs.setattr(filePath, 't', ftime, UNSIGNED_INT_SIZE);
+    var err = littlefs.setattr("/", 'c', ftime, UNSIGNED_INT_SIZE);
     if (err != 0) {
-        console.error("error setting file attribute: " + err);
-        return err
+        console.error("error setting folder attribute: " + err);
+        return err;
     }
 
-    var err = littlefs.setattr(filePath, 'c', ftime, UNSIGNED_INT_SIZE);
+    let contentFunc;
+    // Loop through params.files
+    for (let fileObj of params.files) {
+        // Add files here
+
+        if (fileObj.callback) {
+            contentFunc = fileObj.callback;
+        } else {
+            contentFunc = getFileText;
+        }
+        // Get contents
+        let filePath = "/" + fileObj.filename;
+        let fileContents = await contentFunc(params.rootFolder + filePath);
+        let file = new LfsFile();
+        var err = littlefs.fileOpen(file, filePath, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);
+        if (err != 0) {
+            console.error("error opening file: " + err);
+            return err;
+        }
+
+        var size = littlefs.fileWrite(file, fileContents, fileContents.length);
+        if (size >= 0) {
+            console.log("Wrote " + size + " bytes...");
+        } else {
+            console.error("error writing file: " + size);
+            return size;
+        }
+
+        var err = littlefs.fileClose(file);
+        if (err != 0) {
+            console.error("error closing file: " + err);
+            return err;
+        }
+
+        // Set file attributes for creation and modify time
+        var err = littlefs.setattr(filePath, 't', ftime, UNSIGNED_INT_SIZE);
+        if (err != 0) {
+            console.error("error setting file attribute: " + err);
+            return err;
+        }
+
+        var err = littlefs.setattr(filePath, 'c', ftime, UNSIGNED_INT_SIZE);
+        if (err != 0) {
+            console.error("error setting file attribute: " + err);
+            return err;
+        }
+    }
+
+    var err = littlefs.setattr("/", 't', [ftime, 0], UNSIGNED_INT_SIZE * 2);
     if (err != 0) {
-        console.error("error setting file attribute: " + err);
-        return err
+        console.error("error setting folder attribute: " + err);
+        return err;
     }
-  }
 
-  var err = littlefs.setattr("/", 't', [ftime, 0], UNSIGNED_INT_SIZE * 2);
-  if (err != 0) {
-      console.error("error setting folder attribute: " + err);
-      return err
-  }
+    var err = littlefs.setattr("/", 'c', [ftime, 0], UNSIGNED_INT_SIZE * 2);
+    if (err != 0) {
+        console.error("error setting folder attribute: " + err);
+        return err;
+    }
 
-  var err = littlefs.setattr("/", 'c', [ftime, 0], UNSIGNED_INT_SIZE * 2);
-  if (err != 0) {
-      console.error("error setting folder attribute: " + err);
-      return err
-  }
-
-  var err = littlefs.unmount()
+    var err = littlefs.unmount();
     if (err != 0) {
         console.error("error unmounting: " + err);
-        return err
+        return err;
     }
 
-  return binaryOutput.data;
+    return binaryOutput.data;
 }
 
 async function getFileText(path) {
